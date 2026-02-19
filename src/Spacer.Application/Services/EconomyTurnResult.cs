@@ -4,5 +4,6 @@ public readonly record struct EconomyTurnResult(
     int ProductionIncome,
     int SalaryIncome,
     int PublicOpinionDelta,
-    int PopulationDelta
+    int PopulationDelta,
+    int LoyaltyDelta
 );

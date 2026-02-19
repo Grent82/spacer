@@ -13,10 +13,17 @@ public sealed class EconomyTurnService
         _planetEconomyService = planetEconomyService;
     }
 
-    public EconomyTurnResult ApplyPlanetEconomy( Planet planet, GameRules gameRules, PlanetEconomyRules economyRules )
+    public EconomyTurnResult ApplyPlanetEconomy(
+        Planet planet,
+        GameRules gameRules,
+        PlanetEconomyRules economyRules,
+        FleetPostureSummary posture
+    )
     {
         var productionIncome = Math.Max(0, planet.Production);
-        var salaryIncome = Math.Max(0, _planetEconomyService.ComputeSalary(planet, gameRules));
+        var salaryIncome = gameRules.IsSalaryMonth
+            ? Math.Max(0, _planetEconomyService.ComputeSalary(planet, gameRules))
+            : 0;
         var totalIncome = productionIncome + salaryIncome;
 
         _planetEconomyService.AdjustGold(planet, totalIncome, economyRules);
@@ -25,6 +32,12 @@ public sealed class EconomyTurnService
         if (opinionDelta != 0)
         {
             _planetEconomyService.AdjustPublicOpinion(planet, opinionDelta, economyRules);
+        }
+
+        var loyaltyDelta = ComputeLoyaltyDriftFromPosture(planet, posture);
+        if (loyaltyDelta != 0)
+        {
+            _planetEconomyService.AdjustCitizensLoyalty(planet, loyaltyDelta, economyRules);
         }
 
         var populationDelta = ComputePopulationGrowth(planet, economyRules);
@@ -37,7 +50,8 @@ public sealed class EconomyTurnService
             productionIncome,
             salaryIncome,
             opinionDelta,
-            populationDelta
+            populationDelta,
+            loyaltyDelta
         );
     }
 
@@ -63,5 +77,30 @@ public sealed class EconomyTurnService
         }
 
         return planet.Population / rules.PopulationGrowthDivisor;
+    }
+
+    private static int ComputeLoyaltyDriftFromPosture(Planet planet, FleetPostureSummary posture)
+    {
+        if (!planet.IsCapitalCity)
+        {
+            return 0;
+        }
+
+        if (planet.PublicOpinion < 45)
+        {
+            if (posture.TotalFleets >= 2 && posture.FleetsMovingToOwn > posture.TotalFleets / 2)
+            {
+                return -3;
+            }
+        }
+        else if (planet.PublicOpinion > 55)
+        {
+            if (posture.FleetsMovingToEnemy > 0)
+            {
+                return -4;
+            }
+        }
+
+        return 0;
     }
 }
