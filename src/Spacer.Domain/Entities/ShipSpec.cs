@@ -26,15 +26,44 @@ public sealed class ShipSpec
     public int Variant { get; private set; }
     public EntityId TypeId { get; private set; } = EntityId.None;
 
-    public int Attack { get; private set; }
-    public int AntiAir { get; private set; }
-    public int Defense { get; private set; }
-    public int Minesweeping { get; private set; }
-    public int Construction { get; private set; }
+    public int CatalogIndex { get; private set; }
+    public int TypeCode { get; private set; }
+    public ShipStatBlock BaseStats { get; private set; } = ShipStatBlock.Empty;
 
-    public int ShipLoading { get; private set; }
-    public int CarrierLoading { get; private set; }
-    public int LandingPodLoading { get; private set; }
+    public int BaseCost { get; private set; }
+    public int BaseCarrierLoading { get; private set; }
+    public int BaseLandingPodLoading { get; private set; }
+    public int BaseShipLoading { get; private set; }
 
-    public int Cost { get; private set; }
+    public void ConfigureDefinition(
+        int catalogIndex,
+        int typeCode,
+        ShipStatBlock baseStats,
+        int baseCost,
+        int baseCarrierLoading,
+        int baseLandingPodLoading,
+        int baseShipLoading
+    )
+    {
+        if (catalogIndex < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(catalogIndex));
+        }
+        if (typeCode < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(typeCode));
+        }
+        if (baseCost < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(baseCost));
+        }
+
+        CatalogIndex = catalogIndex;
+        TypeCode = typeCode;
+        BaseStats = baseStats ?? ShipStatBlock.Empty;
+        BaseCost = baseCost;
+        BaseCarrierLoading = Math.Max(0, baseCarrierLoading);
+        BaseLandingPodLoading = Math.Max(0, baseLandingPodLoading);
+        BaseShipLoading = Math.Max(0, baseShipLoading);
+    }
 }

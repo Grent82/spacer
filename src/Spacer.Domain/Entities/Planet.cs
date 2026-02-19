@@ -26,6 +26,7 @@ public sealed class Planet
 
     public PlanetType Type { get; private set; }
     public bool IsCapitalCity { get; private set; }
+    public int SystemId { get; private set; }
 
     public EntityId RulerId { get; private set; } = EntityId.None;
     public EntityId PlayerOwnerId { get; private set; } = EntityId.None;
@@ -58,6 +59,11 @@ public sealed class Planet
         }
 
         Name = name;
+    }
+
+    public void SetSystemId(int systemId)
+    {
+        SystemId = systemId < 0 ? 0 : systemId;
     }
 
     public void AdjustPopulation(int delta, PlanetEconomyRules rules)
