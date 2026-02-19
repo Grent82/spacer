@@ -55,6 +55,34 @@ public sealed class Planet
 
     public PlanetResearch Research { get; } = new();
 
+    public void ResetTurnFlags()
+    {
+        EconomyChangedThisTurn = false;
+        DefenseUpdatedThisTurn = false;
+        InformationLeak = RulerId.IsNone ? 1 : 0;
+        Research.ResetUpdateFlags();
+    }
+
+    public void MarkEconomyChanged()
+    {
+        EconomyChangedThisTurn = true;
+    }
+
+    public void MarkDefenseUpdated()
+    {
+        DefenseUpdatedThisTurn = true;
+    }
+
+    public void SetInformationLeak(bool value)
+    {
+        InformationLeak = value ? 1 : 0;
+    }
+
+    public void SetDidEspionage(bool value)
+    {
+        DidEspionage = value;
+    }
+
     public void Rename(string name)
     {
         if (string.IsNullOrWhiteSpace(name))

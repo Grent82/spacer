@@ -43,6 +43,16 @@ public sealed class PlanetResearchService
         planet.Research.SetUpdatedWeaponResearch(index, value ? 1 : 0);
     }
 
+    public void SetUpdatedResearch(Planet planet, int index, int value)
+    {
+        planet.Research.SetUpdatedResearch(index, value);
+    }
+
+    public void SetUpdatedResearch(Planet planet, int index, bool value)
+    {
+        planet.Research.SetUpdatedResearch(index, value ? 1 : 0);
+    }
+
     public void SetSystemTechLevel(Planet planet, int value, PlanetResearchRules rules)
     {
         planet.Research.SetSystemTechLevel(value, rules);
@@ -129,5 +139,10 @@ public sealed class PlanetResearchService
         }
 
         return changed;
+    }
+
+    public void ResetUpdateFlags(Planet planet)
+    {
+        planet.Research.ResetUpdateFlags();
     }
 }

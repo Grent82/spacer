@@ -31,7 +31,12 @@ public sealed class RunTurnUseCase
 
     public void Execute()
     {
-        // 1) Reset per-turn flags (TODO: wire once domain flags exist).
+        // 1) Reset per-turn flags.
+        foreach (var planet in _planets.GetAll())
+        {
+            planet.ResetTurnFlags();
+        }
+
         // 2) Economy tick (production -> gold -> opinion drift).
         foreach (var planet in _planets.GetAll())
         {
