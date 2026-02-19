@@ -10,6 +10,7 @@ public sealed class RunTurnUseCase
 {
     private readonly IPlanetRepository _planets;
     private readonly ICharacterRepository _characters;
+    private readonly IFleetPostureProvider _fleetPostureProvider;
     private readonly EconomyTurnService _economyTurnService;
     private readonly WeaponResearchProgressionService _researchService;
     private readonly GameConfig _config;
@@ -17,6 +18,7 @@ public sealed class RunTurnUseCase
     public RunTurnUseCase(
         IPlanetRepository planets,
         ICharacterRepository characters,
+        IFleetPostureProvider fleetPostureProvider,
         EconomyTurnService economyTurnService,
         WeaponResearchProgressionService researchService,
         GameConfig config
@@ -24,6 +26,7 @@ public sealed class RunTurnUseCase
     {
         _planets = planets;
         _characters = characters;
+        _fleetPostureProvider = fleetPostureProvider;
         _economyTurnService = economyTurnService;
         _researchService = researchService;
         _config = config;
@@ -45,10 +48,15 @@ public sealed class RunTurnUseCase
                 continue;
             }
 
+            var posture = planet.RulerId.IsNone
+                ? FleetPostureSummary.Empty
+                : _fleetPostureProvider.GetForRuler(planet.RulerId);
+
             _economyTurnService.ApplyPlanetEconomy(
                 planet,
                 _config.GameRules,
-                _config.PlanetEconomyRules
+                _config.PlanetEconomyRules,
+                posture
             );
         }
 

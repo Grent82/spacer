@@ -24,6 +24,7 @@ public static class InfrastructureBootstrap
         var weaponCatalog = new CsvWeaponSpecCatalog(weaponSpecPath, weaponNameFormatter);
         var specStore = new InMemoryPlanetFleetSpecStore();
         var planetResearch = new PlanetResearchService();
+        var fleetPostureProvider = new StubFleetPostureProvider();
 
         var rebuildService = new FleetSpecRebuildService(
             shipCatalog,
@@ -43,7 +44,8 @@ public static class InfrastructureBootstrap
             weaponResolver,
             weaponCatalog,
             factionCatalog,
-            specStore
+            specStore,
+            fleetPostureProvider
         );
     }
 }
@@ -55,5 +57,6 @@ public sealed record InfrastructureServices(
     IWeaponIdResolver WeaponIdResolver,
     IWeaponSpecCatalog WeaponSpecCatalog,
     IFactionCatalog FactionCatalog,
-    IPlanetFleetSpecStore PlanetFleetSpecStore
+    IPlanetFleetSpecStore PlanetFleetSpecStore,
+    IFleetPostureProvider FleetPostureProvider
 );
