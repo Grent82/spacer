@@ -37,7 +37,7 @@ public sealed class Planet
     public int GroundAttack { get; private set; }
     public int GroundDefense { get; private set; }
 
-    public int CitizensLoyalty { get; private set; }
+    public int CitizensLoyalty { get; private set; } = 50;
     public int InformationLeak { get; private set; }
     public int Population { get; private set; }
 
@@ -48,6 +48,8 @@ public sealed class Planet
     public EntityId AttackTargetId { get; private set; } = EntityId.None;
     public bool DidEspionage { get; private set; }
 
+    public PlanetResearch Research { get; } = new();
+
     public void Rename(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -56,5 +58,61 @@ public sealed class Planet
         }
 
         Name = name;
+    }
+
+    public void AdjustPopulation(int delta, PlanetEconomyRules rules)
+    {
+        var next = Population + delta;
+        if (next < rules.MinPopulation)
+        {
+            next = rules.MinPopulation;
+        }
+        if (next > rules.MaxPopulation)
+        {
+            next = rules.MaxPopulation;
+        }
+        Population = next;
+    }
+
+    public void AdjustPublicOpinion(int delta, PlanetEconomyRules rules)
+    {
+        var next = PublicOpinion + delta;
+        if (next < rules.MinPublicOpinion)
+        {
+            next = rules.MinPublicOpinion;
+        }
+        if (next > rules.MaxPublicOpinion)
+        {
+            next = rules.MaxPublicOpinion;
+        }
+        PublicOpinion = next;
+    }
+
+    public void AdjustCitizensLoyalty(int delta, PlanetEconomyRules rules)
+    {
+        var next = CitizensLoyalty + delta;
+        if (next < rules.MinLoyalty)
+        {
+            next = rules.MinLoyalty;
+        }
+        if (next > rules.MaxLoyalty)
+        {
+            next = rules.MaxLoyalty;
+        }
+        CitizensLoyalty = next;
+    }
+
+    public void AdjustGold(int delta, PlanetEconomyRules rules)
+    {
+        var next = Gold.Amount + delta;
+        if (next < 0)
+        {
+            next = 0;
+        }
+        if (next > rules.MaxFunds)
+        {
+            next = rules.MaxFunds;
+        }
+        Gold = new Money(next);
     }
 }
