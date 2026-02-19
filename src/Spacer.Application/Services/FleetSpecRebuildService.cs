@@ -1,9 +1,11 @@
 namespace Spacer.Application.Services;
 
+using System;
 using Spacer.Application.Config;
 using Spacer.Application.DTOs;
 using Spacer.Application.Ports;
 using Spacer.Domain.Entities;
+using Spacer.Domain.Enums;
 using Spacer.Domain.Services;
 using Spacer.Domain.ValueObjects;
 
@@ -23,13 +25,7 @@ public sealed class FleetSpecRebuildService
     private readonly PlanetResearchService _planetResearchService;
     private readonly GameConfig _config;
 
-    public FleetSpecRebuildService(
-        IShipSpecCatalog shipSpecCatalog,
-        IWeaponIdResolver weaponIdResolver,
-        IPlanetFleetSpecStore specStore,
-        PlanetResearchService planetResearchService,
-        GameConfig config
-    )
+    public FleetSpecRebuildService( IShipSpecCatalog shipSpecCatalog, IWeaponIdResolver weaponIdResolver, IPlanetFleetSpecStore specStore, PlanetResearchService planetResearchService, GameConfig config )
     {
         _shipSpecCatalog = shipSpecCatalog;
         _weaponIdResolver = weaponIdResolver;
@@ -40,9 +36,13 @@ public sealed class FleetSpecRebuildService
 
     public PlanetFleetSpecSet Rebuild(Planet planet, WeaponResearchCategory category)
     {
-        var systemId = planet.SystemId == 0 ? 1 : planet.SystemId;
+        if (planet.OwnerFactionId.IsNone)
+        {
+            return new PlanetFleetSpecSet( planet.Id, category, Array.Empty<ShipSlotSpec>() );
+        }
+        var factionId = planet.OwnerFactionId.Value;
         var remaining = planet.Research.GetRemainingWeaponResearch((int)category);
-        var stage = _planetResearchService.ComputeWeaponReleaseStage(
+        var tier = _planetResearchService.ComputeWeaponReleaseStage(
             _config.WeaponReleaseChanges,
             remaining
         );
@@ -60,9 +60,9 @@ public sealed class FleetSpecRebuildService
                 continue;
             }
 
-            var weaponId = _weaponIdResolver.ResolveWeaponId(systemId, stage, typeCode);
+            var weaponId = _weaponIdResolver.ResolveWeaponId(factionId, tier, typeCode);
             var optimized = BuildOptimizedStats(planet, spec, category);
-            var cost = ComputeCost(spec.BaseCost, stage, category, typeCode);
+            var cost = ComputeCost(spec.BaseCost, tier, category, typeCode);
             var loadings = ComputeLoadings(spec, category, typeCode);
 
             var slotIndex = spec.CatalogIndex;
@@ -103,7 +103,10 @@ public sealed class FleetSpecRebuildService
         for (var i = 0; i < ShipStatBlock.StatCount; i++)
         {
             var researchFactor = planet.Research.GetCurrentLevel(i) / 1000;
-            if (applyFleetBoost && (i == 3 || i == 4 || i == 5))
+            if (applyFleetBoost
+                && (i == (int)ShipStatIndex.Minesweeping
+                    || i == (int)ShipStatIndex.Construction
+                    || i == (int)ShipStatIndex.Maneuvering))
             {
                 optimized[i] = baseStats[i] + researchFactor * 3;
                 continue;
@@ -123,7 +126,7 @@ public sealed class FleetSpecRebuildService
 
     private static int ComputeCost(
         int baseCost,
-        int stage,
+        int tier,
         WeaponResearchCategory category,
         int typeCode
     )
@@ -133,7 +136,7 @@ public sealed class FleetSpecRebuildService
             return baseCost;
         }
 
-        var multiplier = stage - 1;
+        var multiplier = tier - 1;
         if (multiplier < 0)
         {
             multiplier = 0;

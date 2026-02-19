@@ -35,15 +35,7 @@ public sealed class ShipSpec
     public int BaseLandingPodLoading { get; private set; }
     public int BaseShipLoading { get; private set; }
 
-    public void ConfigureDefinition(
-        int catalogIndex,
-        int typeCode,
-        ShipStatBlock baseStats,
-        int baseCost,
-        int baseCarrierLoading,
-        int baseLandingPodLoading,
-        int baseShipLoading
-    )
+    public void ConfigureDefinition( int catalogIndex, int typeCode, ShipStatBlock baseStats, int baseCost, int baseCarrierLoading, int baseLandingPodLoading, int baseShipLoading )
     {
         if (catalogIndex < 0)
         {

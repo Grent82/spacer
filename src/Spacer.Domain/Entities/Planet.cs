@@ -31,6 +31,7 @@ public sealed class Planet
     public EntityId RulerId { get; private set; } = EntityId.None;
     public EntityId PlayerOwnerId { get; private set; } = EntityId.None;
     public EntityId FeudalLordId { get; private set; } = EntityId.None;
+    public EntityId OwnerFactionId { get; private set; } = EntityId.None;
 
     public Position Position { get; private set; }
 
@@ -64,6 +65,29 @@ public sealed class Planet
     public void SetSystemId(int systemId)
     {
         SystemId = systemId < 0 ? 0 : systemId;
+    }
+
+    public void SetRuler(EntityId rulerId, EntityId rulerFactionId)
+    {
+        RulerId = rulerId;
+
+        if (rulerId.IsNone)
+        {
+            OwnerFactionId = EntityId.None;
+            return;
+        }
+
+        if (rulerFactionId.IsNone)
+        {
+            throw new ArgumentException("Ruler faction must be provided when a ruler is set.", nameof(rulerFactionId));
+        }
+
+        OwnerFactionId = rulerFactionId;
+    }
+
+    public void SetRuler(int rulerId, int rulerFactionId)
+    {
+        SetRuler(EntityId.Create(rulerId), EntityId.Create(rulerFactionId));
     }
 
     public void AdjustPopulation(int delta, PlanetEconomyRules rules)
