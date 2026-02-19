@@ -8,6 +8,11 @@ public sealed class StubJudgementLookup : IJudgementLookup
 {
     private readonly JudgementTable _table;
 
+    public StubJudgementLookup(GameConfig config)
+    {
+        _table = config.JudgementTable;
+    }
+
     public StubJudgementLookup(JudgementTable? table = null)
     {
         _table = table ?? JudgementTable.Empty;

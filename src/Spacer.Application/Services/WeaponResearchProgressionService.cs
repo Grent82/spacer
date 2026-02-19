@@ -1,5 +1,6 @@
 namespace Spacer.Application.Services;
 
+using Spacer.Application.Config;
 using Spacer.Application.DTOs;
 using Spacer.Application.Ports;
 using Spacer.Domain.Entities;
@@ -16,6 +17,11 @@ public sealed class WeaponResearchProgressionService
     private readonly IFleetSpecRebuilder _fleetSpecRebuilder;
     private readonly PlanetResearchRules _rules;
     private readonly int _weaponReleaseChanges;
+
+    public WeaponResearchProgressionService( PlanetResearchService planetResearchService, IJudgementLookup judgementLookup, IFleetSpecRebuilder fleetSpecRebuilder, GameConfig config )
+        : this( planetResearchService, judgementLookup, fleetSpecRebuilder, config.PlanetResearchRules, config.WeaponReleaseChanges )
+    {
+    }
 
     public WeaponResearchProgressionService( PlanetResearchService planetResearchService, IJudgementLookup judgementLookup, IFleetSpecRebuilder fleetSpecRebuilder, PlanetResearchRules rules, int weaponReleaseChanges )
     {
