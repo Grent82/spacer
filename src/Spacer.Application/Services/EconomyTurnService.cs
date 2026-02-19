@@ -27,7 +27,18 @@ public sealed class EconomyTurnService
             _planetEconomyService.AdjustPublicOpinion(planet, opinionDelta, economyRules);
         }
 
-        return new EconomyTurnResult(productionIncome, salaryIncome, opinionDelta);
+        var populationDelta = ComputePopulationGrowth(planet, economyRules);
+        if (populationDelta != 0)
+        {
+            _planetEconomyService.AdjustPopulation(planet, populationDelta, economyRules);
+        }
+
+        return new EconomyTurnResult(
+            productionIncome,
+            salaryIncome,
+            opinionDelta,
+            populationDelta
+        );
     }
 
     private static int ComputePublicOpinionDrift(Planet planet)
@@ -42,5 +53,15 @@ public sealed class EconomyTurnService
         }
 
         return 0;
+    }
+
+    private static int ComputePopulationGrowth(Planet planet, PlanetEconomyRules rules)
+    {
+        if (rules.PopulationGrowthDivisor <= 0)
+        {
+            return 0;
+        }
+
+        return planet.Population / rules.PopulationGrowthDivisor;
     }
 }

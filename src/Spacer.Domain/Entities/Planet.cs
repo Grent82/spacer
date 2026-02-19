@@ -47,6 +47,9 @@ public sealed class Planet
     public Money Gold { get; private set; } = Money.Zero;
     public int PublicOpinion { get; private set; }
 
+    public bool EconomyChangedThisTurn { get; private set; }
+    public bool DefenseUpdatedThisTurn { get; private set; }
+
     public EntityId AttackTargetId { get; private set; } = EntityId.None;
     public bool DidEspionage { get; private set; }
 

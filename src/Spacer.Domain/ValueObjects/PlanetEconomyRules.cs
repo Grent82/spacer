@@ -7,7 +7,8 @@ public readonly record struct PlanetEconomyRules(
     int MaxLoyalty,
     int MinPublicOpinion,
     int MaxPublicOpinion,
-    int MaxFunds
+    int MaxFunds,
+    int PopulationGrowthDivisor
 )
 {
     public static readonly PlanetEconomyRules Default = new(
@@ -17,6 +18,7 @@ public readonly record struct PlanetEconomyRules(
         MaxLoyalty: 99,
         MinPublicOpinion: 0,
         MaxPublicOpinion: 99,
-        MaxFunds: 9_999_999
+        MaxFunds: 9_999_999,
+        PopulationGrowthDivisor: 1000
     );
 }
