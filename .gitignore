@@ -225,6 +225,8 @@ action-scripts/
 .tool-versions
 .github/runners/
 
+.DS_Store
+
 
 rai7*.*
 
