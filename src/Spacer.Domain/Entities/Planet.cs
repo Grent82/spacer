@@ -98,6 +98,12 @@ public sealed class Planet
         SystemId = systemId < 0 ? 0 : systemId;
     }
 
+    public void SetType(PlanetType type, bool isCapitalCity)
+    {
+        Type = type;
+        IsCapitalCity = isCapitalCity;
+    }
+
     public void SetRuler(EntityId rulerId, EntityId rulerFactionId)
     {
         RulerId = rulerId;
@@ -119,6 +125,32 @@ public sealed class Planet
     public void SetRuler(int rulerId, int rulerFactionId)
     {
         SetRuler(EntityId.Create(rulerId), EntityId.Create(rulerFactionId));
+    }
+
+    public void SetOwnerFaction(EntityId factionId)
+    {
+        OwnerFactionId = factionId;
+    }
+
+    public void SetOwnerFaction(int factionId)
+    {
+        SetOwnerFaction(factionId > 0 ? EntityId.Create(factionId) : EntityId.None);
+    }
+
+    public void ConfigureEconomy( int population, int production, int publicOpinion, int citizensLoyalty, int gold )
+    {
+        Population = Math.Max(0, population);
+        Production = Math.Max(0, production);
+        PublicOpinion = Math.Max(0, publicOpinion);
+        CitizensLoyalty = Math.Max(0, citizensLoyalty);
+        Gold = new Money(Math.Max(0, gold));
+    }
+
+    public void ConfigureDefense( int landBattleNumber, int groundAttack, int groundDefense )
+    {
+        LandBattleNumber = Math.Max(0, landBattleNumber);
+        GroundAttack = Math.Max(0, groundAttack);
+        GroundDefense = Math.Max(0, groundDefense);
     }
 
     public void AdjustPopulation(int delta, PlanetEconomyRules rules)

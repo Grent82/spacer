@@ -13,7 +13,7 @@ public static class InfrastructureBootstrap
 {
     public static InfrastructureServices Create(GameConfig config, string dataRoot)
     {
-        var scenario = 1; // TODO: make this configurable from menu on start and support multiple scenarios 
+        var scenario = 1; // TODO: make this configurable from menu on start and support multiple scenarios
         var characterPaths = new List<string>();
         var shipSpecPath = Path.Combine(dataRoot, "ship_specs.csv");
         var weaponIdPath = Path.Combine(dataRoot, "weapon_ids.csv");
@@ -35,12 +35,18 @@ public static class InfrastructureBootstrap
             characterPaths.Add(scenarioCharactersPath);
         }
 
+        var mainMapPath = Path.Combine(dataRoot, "main_map_" + scenario + ".csv");
+        var defMapPath = Path.Combine(dataRoot, "defmap_" + scenario + ".csv");
+        var planetPath = Path.Combine(dataRoot, "planets_scenario_" + scenario + ".csv");
+
         var shipCatalog = new CsvShipSpecCatalog(shipSpecPath);
         var weaponResolver = new CsvWeaponIdResolver(weaponIdPath);
         var factionCatalog = new CsvFactionCatalog(factionPath);
         var weaponNameFormatter = new WeaponNameFormatter(factionCatalog);
         var weaponCatalog = new CsvWeaponSpecCatalog(weaponSpecPath, weaponNameFormatter);
         var itemCatalog = new CsvItemCatalog(itemPath);
+        var mapLayoutRepository = new CsvMapLayoutRepository(mainMapPath, defMapPath);
+        var planetRepository = new CsvPlanetRepository(planetPath);
         var specStore = new InMemoryPlanetFleetSpecStore();
         var planetResearch = new PlanetResearchService();
         var fleetPostureProvider = new StubFleetPostureProvider();
@@ -66,10 +72,12 @@ public static class InfrastructureBootstrap
             weaponCatalog,
             factionCatalog,
             itemCatalog,
+            mapLayoutRepository,
             specStore,
             fleetPostureProvider,
             characterRepository,
-            characterRoster
+            characterRoster,
+            planetRepository
         );
     }
 }
@@ -82,8 +90,10 @@ public sealed record InfrastructureServices(
     IWeaponSpecCatalog WeaponSpecCatalog,
     IFactionCatalog FactionCatalog,
     IItemCatalog ItemCatalog,
+    IMapLayoutRepository MapLayoutRepository,
     IPlanetFleetSpecStore PlanetFleetSpecStore,
     IFleetPostureProvider FleetPostureProvider,
     ICharacterRepository CharacterRepository,
-    ICharacterRoster CharacterRoster
+    ICharacterRoster CharacterRoster,
+    IPlanetRepository PlanetRepository
 );
