@@ -7,7 +7,8 @@ public sealed record GameConfig(
     PlanetEconomyRules PlanetEconomyRules,
     PlanetResearchRules PlanetResearchRules,
     int WeaponReleaseChanges,
-    JudgementTable JudgementTable
+    JudgementTable JudgementTable,
+    FactionPoliticsRules FactionPoliticsRules
 )
 {
     public static readonly GameConfig Default = new(
@@ -15,6 +16,7 @@ public sealed record GameConfig(
         PlanetEconomyRules.Default,
         PlanetResearchRules.Default,
         WeaponReleaseChanges: 4,
-        JudgementTable: JudgementTable.Empty
+        JudgementTable: JudgementTable.Empty,
+        FactionPoliticsRules: FactionPoliticsRules.Default
     );
 }

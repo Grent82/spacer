@@ -25,6 +25,7 @@ public static class InfrastructureBootstrap
         var specStore = new InMemoryPlanetFleetSpecStore();
         var planetResearch = new PlanetResearchService();
         var fleetPostureProvider = new StubFleetPostureProvider();
+        var characterRoster = new StubCharacterRoster();
 
         var rebuildService = new FleetSpecRebuildService(
             shipCatalog,
@@ -45,7 +46,8 @@ public static class InfrastructureBootstrap
             weaponCatalog,
             factionCatalog,
             specStore,
-            fleetPostureProvider
+            fleetPostureProvider,
+            characterRoster
         );
     }
 }
@@ -58,5 +60,6 @@ public sealed record InfrastructureServices(
     IWeaponSpecCatalog WeaponSpecCatalog,
     IFactionCatalog FactionCatalog,
     IPlanetFleetSpecStore PlanetFleetSpecStore,
-    IFleetPostureProvider FleetPostureProvider
+    IFleetPostureProvider FleetPostureProvider,
+    ICharacterRoster CharacterRoster
 );

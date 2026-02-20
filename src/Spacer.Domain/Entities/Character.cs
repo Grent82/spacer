@@ -50,6 +50,7 @@ public sealed class Character
     public int Battle { get; private set; }
     public int Diplomacy { get; private set; }
     public int HiddenSkill { get; private set; }
+    public int FriendshipIntimacy { get; private set; }
 
     public int PregnancyMonths { get; private set; }
     public int Infertility { get; private set; }
@@ -87,5 +88,38 @@ public sealed class Character
     public void SetPersonality(PersonalityType personality)
     {
         Personality = personality;
+    }
+
+    public void SetLoyalty(int value, FactionPoliticsRules rules)
+    {
+        Loyalty = Clamp(value, rules.MinLoyalty, rules.MaxLoyalty);
+    }
+
+    public void AdjustLoyalty(int delta, FactionPoliticsRules rules)
+    {
+        SetLoyalty(Loyalty + delta, rules);
+    }
+
+    public void SetFriendshipIntimacy(int value)
+    {
+        FriendshipIntimacy = Clamp(value, 0, 100);
+    }
+
+    public void AdjustFriendshipIntimacy(int delta)
+    {
+        SetFriendshipIntimacy(FriendshipIntimacy + delta);
+    }
+
+    private static int Clamp(int value, int min, int max)
+    {
+        if (value < min)
+        {
+            return min;
+        }
+        if (value > max)
+        {
+            return max;
+        }
+        return value;
     }
 }
