@@ -19,6 +19,11 @@ public static class InfrastructureBootstrap
         var weaponIdPath = Path.Combine(dataRoot, "weapon_ids.csv");
         var weaponSpecPath = Path.Combine(dataRoot, "weapon_specs.csv");
         var factionPath = Path.Combine(dataRoot, "factions.csv");
+        var itemPath = Path.Combine(dataRoot, "items.csv");
+        if (!File.Exists(itemPath))
+        {
+            itemPath = Path.Combine(dataRoot, "item.csv");
+        }
         var characterBasePath = Path.Combine(dataRoot, "characters_base.csv");
         if (File.Exists(characterBasePath))
         {
@@ -35,6 +40,7 @@ public static class InfrastructureBootstrap
         var factionCatalog = new CsvFactionCatalog(factionPath);
         var weaponNameFormatter = new WeaponNameFormatter(factionCatalog);
         var weaponCatalog = new CsvWeaponSpecCatalog(weaponSpecPath, weaponNameFormatter);
+        var itemCatalog = new CsvItemCatalog(itemPath);
         var specStore = new InMemoryPlanetFleetSpecStore();
         var planetResearch = new PlanetResearchService();
         var fleetPostureProvider = new StubFleetPostureProvider();
@@ -59,6 +65,7 @@ public static class InfrastructureBootstrap
             weaponResolver,
             weaponCatalog,
             factionCatalog,
+            itemCatalog,
             specStore,
             fleetPostureProvider,
             characterRepository,
@@ -74,6 +81,7 @@ public sealed record InfrastructureServices(
     IWeaponIdResolver WeaponIdResolver,
     IWeaponSpecCatalog WeaponSpecCatalog,
     IFactionCatalog FactionCatalog,
+    IItemCatalog ItemCatalog,
     IPlanetFleetSpecStore PlanetFleetSpecStore,
     IFleetPostureProvider FleetPostureProvider,
     ICharacterRepository CharacterRepository,
