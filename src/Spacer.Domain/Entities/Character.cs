@@ -90,6 +90,21 @@ public sealed class Character
         Personality = personality;
     }
 
+    public void SetState(CharacterState state)
+    {
+        State = state;
+    }
+
+    public void SetAge(int age)
+    {
+        Age = age < 0 ? 0 : age;
+    }
+
+    public void SetMerits(int merits)
+    {
+        Merits = merits < 0 ? 0 : merits;
+    }
+
     public void SetLoyalty(int value, FactionPoliticsRules rules)
     {
         Loyalty = Clamp(value, rules.MinLoyalty, rules.MaxLoyalty);

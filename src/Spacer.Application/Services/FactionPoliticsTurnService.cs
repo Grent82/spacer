@@ -49,13 +49,7 @@ public sealed class FactionPoliticsTurnService
                 continue;
             }
 
-            _politicsService.TryJoinFaction(
-                candidate,
-                leaders,
-                rules,
-                _random,
-                gameRules.PlayerOverlordId
-            );
+            _politicsService.TryJoinFaction( candidate, leaders, rules, _random, gameRules.PlayerOverlordId );
         }
     }
 }
