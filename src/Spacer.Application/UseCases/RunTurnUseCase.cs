@@ -43,28 +43,19 @@ public sealed class RunTurnUseCase
             planet.ResetTurnFlags();
         }
 
-        // 2) Economy tick (production -> gold -> opinion drift).
-        foreach (var planet in _planets.GetAll())
-        {
-            if (planet.OwnerFactionId.IsNone)
-            {
-                continue;
-            }
-
-            var posture = planet.RulerId.IsNone
+        // 2) Economy tick (salary income, opinion drift, loyalty impact, population growth).
+        var allPlanets = _planets.GetAll();
+        _economyTurnService.ApplyPlanetEconomy(
+            allPlanets,
+            _config.GameRules,
+            _config.PlanetEconomyRules,
+            planet => planet.RulerId.IsNone
                 ? FleetPostureSummary.Empty
-                : _fleetPostureProvider.GetForRuler(planet.RulerId);
-
-            _economyTurnService.ApplyPlanetEconomy(
-                planet,
-                _config.GameRules,
-                _config.PlanetEconomyRules,
-                posture
-            );
-        }
+                : _fleetPostureProvider.GetForRuler(planet.RulerId)
+        );
 
         // 3) Research progression (weapon release unlocks).
-        foreach (var planet in _planets.GetAll())
+        foreach (var planet in allPlanets)
         {
             if (planet.RulerId.IsNone)
             {
@@ -81,7 +72,7 @@ public sealed class RunTurnUseCase
         }
 
         // 4) Faction politics (defection/joining).
-        _factionPoliticsService.Apply(_config.GameRules, _config.FactionPoliticsRules);
+        _factionPoliticsService.Apply(_config.GameRules, _config.FactionPoliticsRules, _config.PlanetEconomyRules);
 
         // 5) Additional per-turn systems (diplomacy, battles, events) TBD.
     }

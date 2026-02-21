@@ -12,6 +12,31 @@ public sealed class FactionPoliticsService
         character.AdjustLoyalty(delta, rules);
     }
 
+    public void ApplySuccession(
+        Character newLeader,
+        IReadOnlyList<Character> members,
+        FactionPoliticsRules rules
+    )
+    {
+        foreach (var member in members)
+        {
+            if (member.Id == newLeader.Id)
+            {
+                member.SetFaction(newLeader.Id, EntityId.None);
+                continue;
+            }
+
+            member.SetFaction(newLeader.Id, newLeader.Id);
+
+            var delta = ComputeSuccessionLoyaltyDelta(member, newLeader, rules);
+
+            if (delta != 0)
+            {
+                member.AdjustLoyalty(delta, rules);
+            }
+        }
+    }
+
     public bool ShouldDefect(Character character, FactionPoliticsRules rules, IRandomSource random)
     {
         if (character.FactionId == character.Id)
@@ -213,5 +238,53 @@ public sealed class FactionPoliticsService
         }
 
         return best;
+    }
+
+    private static bool IsFamily(Character member, Character leader)
+    {
+        return member.FatherId == leader.Id
+               || member.MotherId == leader.Id
+               || member.PartnerId == leader.Id
+               || leader.FatherId == member.Id
+               || leader.MotherId == member.Id
+               || leader.PartnerId == member.Id;
+    }
+
+    private static int ComputeSuccessionLoyaltyDelta(Character member, Character leader, FactionPoliticsRules rules)
+    {
+        var delta = -rules.SuccessionLoyaltyPenalty;
+        if (IsFamily(member, leader))
+        {
+            delta += rules.SuccessionFamilyBonus;
+        }
+
+        if (leader.Diplomacy < rules.SuccessionDiplomacyThreshold)
+        {
+            delta -= rules.SuccessionDiplomacyPenalty;
+        }
+        else if (leader.Diplomacy > rules.SuccessionDiplomacyThreshold)
+        {
+            delta += rules.SuccessionDiplomacyBonus;
+        }
+
+        var rank = leader.Rank > 0 ? leader.Rank : leader.Merits;
+        if (rank < rules.SuccessionRankThreshold1)
+        {
+            delta -= rules.SuccessionRankPenalty1;
+        }
+        if (rank < rules.SuccessionRankThreshold2)
+        {
+            delta -= rules.SuccessionRankPenalty2;
+        }
+        if (rank < rules.SuccessionRankThreshold3)
+        {
+            delta -= rules.SuccessionRankPenalty3;
+        }
+        if (rank < rules.SuccessionRankThreshold4)
+        {
+            delta -= rules.SuccessionRankPenalty4;
+        }
+
+        return delta;
     }
 }
