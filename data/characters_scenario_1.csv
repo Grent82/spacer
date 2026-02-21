@@ -1,1 +1,1 @@
-id,name,sex,state,age,loyalty,merits,factionId,overlordId,friendshipIntimacy,personality
+id,name,sex,state,age,loyalty,merits,rank,factionId,overlordId,friendshipIntimacy,personality,fatherId,motherId,partnerId,attack,defense,intelligence,strength,charisma,cleverness,battle,diplomacy

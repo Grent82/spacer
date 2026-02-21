@@ -30,6 +30,7 @@ public sealed class Character
     public int Age { get; private set; }
     public int Loyalty { get; private set; }
     public int Merits { get; private set; }
+    public int Rank { get; private set; }
 
     public EntityId FactionId { get; private set; } = EntityId.None;
     public EntityId OverlordId { get; private set; } = EntityId.None;
@@ -105,6 +106,11 @@ public sealed class Character
         Merits = merits < 0 ? 0 : merits;
     }
 
+    public void SetRank(int rank)
+    {
+        Rank = rank < 0 ? 0 : rank;
+    }
+
     public void SetLoyalty(int value, FactionPoliticsRules rules)
     {
         Loyalty = Clamp(value, rules.MinLoyalty, rules.MaxLoyalty);
@@ -123,6 +129,35 @@ public sealed class Character
     public void AdjustFriendshipIntimacy(int delta)
     {
         SetFriendshipIntimacy(FriendshipIntimacy + delta);
+    }
+
+    public void ConfigureStats(
+        int attack,
+        int defense,
+        int intelligence,
+        int strength,
+        int charisma,
+        int cleverness,
+        int battle,
+        int diplomacy
+    )
+    {
+        attack = Math.Max(0, attack);
+        defense = Math.Max(0, defense);
+        intelligence = Math.Max(0, intelligence);
+        strength = Math.Max(0, strength);
+        charisma = Math.Max(0, charisma);
+        cleverness = Math.Max(0, cleverness);
+        battle = Math.Max(0, battle);
+        diplomacy = Math.Max(0, diplomacy);
+
+        BaseStats = new StatBlock(attack, defense, intelligence, strength, charisma, cleverness);
+        CurrentStats = BaseStats;
+
+        Intelligence = intelligence;
+        Cleverness = cleverness;
+        Battle = battle;
+        Diplomacy = diplomacy;
     }
 
     private static int Clamp(int value, int min, int max)
