@@ -9,10 +9,10 @@ using Spacer.Domain.Entities;
 using Spacer.Domain.Enums;
 using Spacer.Domain.ValueObjects;
 
-public sealed class CsvCharacterRepository : ICharacterRepository, ICharacterRoster
+public sealed class CsvCharacterRepository : ICharacterStore
 {
     private readonly Dictionary<EntityId, Character> _byId;
-    private readonly IReadOnlyList<Character> _all;
+    private readonly List<Character> _all;
 
     public CsvCharacterRepository(IEnumerable<string> characterPaths, FactionPoliticsRules rules)
     {
@@ -37,6 +37,18 @@ public sealed class CsvCharacterRepository : ICharacterRepository, ICharacterRos
     public Character? FindById(EntityId id)
     {
         return _byId.TryGetValue(id, out var character) ? character : null;
+    }
+
+    public bool TryAdd(Character character)
+    {
+        if (_byId.ContainsKey(character.Id))
+        {
+            return false;
+        }
+
+        _byId[character.Id] = character;
+        _all.Add(character);
+        return true;
     }
 
     private static string GetCell(string[] row, int index)
@@ -139,6 +151,19 @@ public sealed class CsvCharacterRepository : ICharacterRepository, ICharacterRos
                 );
             }
 
+            var pregnancyMonths = GetInt(row, map, "pregnancymonths", 0);
+            var pregnancyPartnerId = GetInt(row, map, "pregnancypartnerid", 0);
+            if (pregnancyMonths > 0 || pregnancyPartnerId > 0)
+            {
+                var partnerEntityId = pregnancyPartnerId > 0 ? EntityId.Create(pregnancyPartnerId) : EntityId.None;
+                character.SetPregnancy(partnerEntityId, pregnancyMonths);
+            }
+
+            character.SetAgeOfDeath(GetInt(row, map, "ageofdeath", 0));
+            character.SetMonthOfBirth(GetInt(row, map, "monthofbirth", 0));
+            character.SetInfertility(GetInt(row, map, "infertility", 0));
+            character.SetSpecialFlags(GetInt(row, map, "specialflags", 0));
+
             list.Add(character);
         }
     }
@@ -215,37 +240,6 @@ public sealed class CsvCharacterRepository : ICharacterRepository, ICharacterRos
             }
         }
 
-        MapIfPresent(map, "gender", "sex");
-        MapIfPresent(map, "status", "state");
-        MapIfPresent(map, "loyality", "loyalty");
-        MapIfPresent(map, "kunkou", "merits");
-        MapIfPresent(map, "faction", "factionid");
-        MapIfPresent(map, "haouid", "factionid");
-        MapIfPresent(map, "kingid", "factionid");
-        MapIfPresent(map, "lordid", "overlordid");
-        MapIfPresent(map, "friendship", "friendshipintimacy");
-        MapIfPresent(map, "intimacy", "friendshipintimacy");
-        MapIfPresent(map, "temper", "personality");
-
-        MapIfPresent(map, "father", "fatherid");
-        MapIfPresent(map, "mother", "motherid");
-        MapIfPresent(map, "spouse", "partnerid");
-        MapIfPresent(map, "husband", "partnerid");
-        MapIfPresent(map, "wife", "partnerid");
-
-        MapIfPresent(map, "class", "rank");
-
-        MapIfPresent(map, "negotiation", "diplomacy");
-        MapIfPresent(map, "melee", "strength");
-
-        MapIfPresent(map, "int", "intelligence");
-        MapIfPresent(map, "iq", "intelligence");
-
-        MapIfPresent(map, "fleetattack", "attack");
-        MapIfPresent(map, "fleetcommandattack", "attack");
-        MapIfPresent(map, "fleetdefense", "defense");
-        MapIfPresent(map, "fleetcommanddefense", "defense");
-
         return map;
     }
 
@@ -315,18 +309,5 @@ public sealed class CsvCharacterRepository : ICharacterRepository, ICharacterRos
         }
 
         return length == 0 ? string.Empty : new string(buffer, 0, length);
-    }
-
-    private static void MapIfPresent(Dictionary<string, int> map, string alias, string target)
-    {
-        if (map.ContainsKey(target))
-        {
-            return;
-        }
-
-        if (map.TryGetValue(alias, out var index))
-        {
-            map[target] = index;
-        }
     }
 }

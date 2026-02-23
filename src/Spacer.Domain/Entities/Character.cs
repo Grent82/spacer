@@ -54,6 +54,7 @@ public sealed class Character
     public int FriendshipIntimacy { get; private set; }
 
     public int PregnancyMonths { get; private set; }
+    public EntityId PregnancyPartnerId { get; private set; } = EntityId.None;
     public int Infertility { get; private set; }
     public int AgeOfDeath { get; private set; }
     public int MonthOfBirth { get; private set; }
@@ -158,6 +159,53 @@ public sealed class Character
         Cleverness = cleverness;
         Battle = battle;
         Diplomacy = diplomacy;
+    }
+
+    public void SetPregnancyMonths(int months)
+    {
+        PregnancyMonths = months < 0 ? 0 : months;
+    }
+
+    public void SetPregnancy(EntityId partnerId, int months)
+    {
+        PregnancyPartnerId = partnerId;
+        PregnancyMonths = months < 0 ? 0 : months;
+        if (PregnancyMonths == 0)
+        {
+            PregnancyPartnerId = EntityId.None;
+        }
+    }
+
+    public void StartPregnancy(EntityId partnerId)
+    {
+        PregnancyPartnerId = partnerId;
+        PregnancyMonths = 1;
+    }
+
+    public void ClearPregnancy()
+    {
+        PregnancyMonths = 0;
+        PregnancyPartnerId = EntityId.None;
+    }
+
+    public void SetInfertility(int value)
+    {
+        Infertility = value < 0 ? 0 : value;
+    }
+
+    public void SetAgeOfDeath(int age)
+    {
+        AgeOfDeath = age < 0 ? 0 : age;
+    }
+
+    public void SetMonthOfBirth(int month)
+    {
+        MonthOfBirth = month < 0 ? 0 : month;
+    }
+
+    public void SetSpecialFlags(int flags)
+    {
+        SpecialFlags = flags < 0 ? 0 : flags;
     }
 
     private static int Clamp(int value, int min, int max)

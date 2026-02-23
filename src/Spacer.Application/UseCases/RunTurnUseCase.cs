@@ -14,6 +14,7 @@ public sealed class RunTurnUseCase
     private readonly EconomyTurnService _economyTurnService;
     private readonly WeaponResearchProgressionService _researchService;
     private readonly FactionPoliticsTurnService _factionPoliticsService;
+    private readonly CharacterLifecycleTurnService _characterLifecycleService;
     private readonly GameConfig _config;
 
     public RunTurnUseCase(
@@ -23,6 +24,7 @@ public sealed class RunTurnUseCase
         EconomyTurnService economyTurnService,
         WeaponResearchProgressionService researchService,
         FactionPoliticsTurnService factionPoliticsService,
+        CharacterLifecycleTurnService characterLifecycleService,
         GameConfig config
     )
     {
@@ -32,6 +34,7 @@ public sealed class RunTurnUseCase
         _economyTurnService = economyTurnService;
         _researchService = researchService;
         _factionPoliticsService = factionPoliticsService;
+        _characterLifecycleService = characterLifecycleService;
         _config = config;
     }
 
@@ -71,9 +74,16 @@ public sealed class RunTurnUseCase
             _researchService.TryUnlockWeaponRelease(planet, ruler.Personality);
         }
 
-        // 4) Faction politics (defection/joining).
+        // 4) Character lifecycle (aging, births, deaths).
+        _characterLifecycleService.Apply(
+            _config.GameRules,
+            _config.CharacterLifecycleRules,
+            _config.FactionPoliticsRules
+        );
+
+        // 5) Faction politics (defection/joining).
         _factionPoliticsService.Apply(_config.GameRules, _config.FactionPoliticsRules, _config.PlanetEconomyRules);
 
-        // 5) Additional per-turn systems (diplomacy, battles, events) TBD.
+        // 6) Additional per-turn systems (diplomacy, battles, events) TBD.
     }
 }

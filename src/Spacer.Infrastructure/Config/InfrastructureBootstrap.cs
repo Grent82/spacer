@@ -77,7 +77,8 @@ public static class InfrastructureBootstrap
             fleetPostureProvider,
             characterRepository,
             characterRoster,
-            planetRepository
+            planetRepository,
+            characterRepository
         );
     }
 }
@@ -95,5 +96,6 @@ public sealed record InfrastructureServices(
     IFleetPostureProvider FleetPostureProvider,
     ICharacterRepository CharacterRepository,
     ICharacterRoster CharacterRoster,
-    IPlanetRepository PlanetRepository
+    IPlanetRepository PlanetRepository,
+    ICharacterStore CharacterStore
 );
