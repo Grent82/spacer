@@ -1,5 +1,6 @@
 namespace Spacer.Application.Services;
 
+using System;
 using System.Collections.Generic;
 using Spacer.Application.Ports;
 using Spacer.Domain.Entities;
@@ -11,11 +12,18 @@ public sealed class CharacterLifecycleTurnService
 {
     private readonly ICharacterStore _characters;
     private readonly IRandomSource _random;
+    private readonly INamePool _namePool;
 
     public CharacterLifecycleTurnService(ICharacterStore characters, IRandomSource random)
+        : this(characters, random, new EmptyNamePool())
+    {
+    }
+
+    public CharacterLifecycleTurnService(ICharacterStore characters, IRandomSource random, INamePool namePool)
     {
         _characters = characters;
         _random = random;
+        _namePool = namePool;
     }
 
     public CharacterLifecycleResult Apply(
@@ -53,7 +61,7 @@ public sealed class CharacterLifecycleTurnService
 
             if (ShouldProgressPregnancy(character))
             {
-                var newborn = TryResolvePregnancy(character, gameRules, rules, politicsRules, ref nextGeneratedId);
+                var newborn = TryResolvePregnancy(character, roster, gameRules, rules, politicsRules, ref nextGeneratedId);
                 if (newborn is not null)
                 {
                     births.Add(newborn);
@@ -238,6 +246,7 @@ public sealed class CharacterLifecycleTurnService
 
     private Character? TryResolvePregnancy(
         Character mother,
+        IReadOnlyList<Character> roster,
         GameRules gameRules,
         CharacterLifecycleRules rules,
         FactionPoliticsRules politicsRules,
@@ -260,22 +269,42 @@ public sealed class CharacterLifecycleTurnService
             return null;
         }
 
-        var newborn = CreateNewborn(mother, gameRules, rules, politicsRules, nextGeneratedId);
-        nextGeneratedId++;
+        var father = mother.PregnancyPartnerId.IsNone ? null : _characters.FindById(mother.PregnancyPartnerId);
+        var preferredFactionId = ResolvePreferredFactionId(mother, father);
+        var slot = TryGetUnbornSlot(roster, preferredFactionId);
+        var newborn = CreateNewborn(
+            mother,
+            father,
+            preferredFactionId,
+            gameRules,
+            rules,
+            politicsRules,
+            nextGeneratedId,
+            slot,
+            out var usedSlot
+        );
+        if (!usedSlot)
+        {
+            nextGeneratedId++;
+        }
         mother.ClearPregnancy();
         return newborn;
     }
 
-    private Character CreateNewborn(
-        Character mother,
-        GameRules gameRules,
-        CharacterLifecycleRules rules,
-        FactionPoliticsRules politicsRules,
-        int id
-    )
+    private Character CreateNewborn( Character mother, Character? father, EntityId preferredFactionId, GameRules gameRules, CharacterLifecycleRules rules, FactionPoliticsRules politicsRules, int id, Character? slot, out bool usedSlot )
     {
-        var sex = _random.Next(2) == 0 ? Sex.Male : Sex.Female;
-        var newborn = Character.Create(id, $"Child {id}", sex);
+        usedSlot = slot is not null;
+        var chosenSex = slot?.Sex ?? (_random.Next(2) == 0 ? Sex.Male : Sex.Female);
+        var resolvedName = ResolveNewbornName(chosenSex, preferredFactionId, mother, father, id);
+        var newborn = slot ?? Character.Create(id, resolvedName, chosenSex);
+        if (slot is not null && slot.Name.StartsWith("Character ", StringComparison.OrdinalIgnoreCase))
+        {
+            newborn.Rename(resolvedName);
+        }
+        newborn.SetSpecialFlags(0);
+        newborn.SetInfertility(0);
+        newborn.SetAgeOfDeath(0);
+        newborn.SetPregnancy(EntityId.None, 0);
 
         newborn.SetAge(rules.NewbornAge);
         newborn.SetRank(rules.NewbornRank);
@@ -289,11 +318,7 @@ public sealed class CharacterLifecycleTurnService
         newborn.SetMonthOfBirth(birthMonth);
 
         var fatherId = mother.PregnancyPartnerId;
-        newborn.SetFamily(
-            fatherId,
-            mother.Id,
-            EntityId.None
-        );
+        newborn.SetFamily( fatherId, mother.Id, EntityId.None );
 
         if (!mother.FactionId.IsNone || !mother.OverlordId.IsNone)
         {
@@ -306,12 +331,9 @@ public sealed class CharacterLifecycleTurnService
             newbornState = CharacterState.Commoner;
         }
 
-        if (fatherId == gameRules.PlayerOverlordId
-            && mother.Rank < rules.NobleRankThreshold
-            && fatherId != EntityId.None)
+        if (fatherId == gameRules.PlayerOverlordId && mother.Rank < rules.SovereignRankThreshold && fatherId != EntityId.None)
         {
-            var father = _characters.FindById(fatherId);
-            if (father is not null && father.Rank < rules.NobleRankThreshold)
+            if (father is not null && father.Rank < rules.SovereignRankThreshold)
             {
                 newbornState = CharacterState.Commoner;
             }
@@ -319,6 +341,91 @@ public sealed class CharacterLifecycleTurnService
 
         newborn.SetState(newbornState);
         return newborn;
+    }
+
+    private Character? TryGetUnbornSlot(IReadOnlyList<Character> roster, EntityId preferredFactionId)
+    {
+        var candidates = new List<Character>();
+        foreach (var character in roster)
+        {
+            if (character.State != CharacterState.Unborn)
+            {
+                continue;
+            }
+            if (character.Age != 0)
+            {
+                continue;
+            }
+            if (!character.FatherId.IsNone || !character.MotherId.IsNone || !character.PartnerId.IsNone)
+            {
+                continue;
+            }
+
+            if (!preferredFactionId.IsNone && character.FactionId != preferredFactionId)
+            {
+                continue;
+            }
+
+            candidates.Add(character);
+        }
+
+        if (candidates.Count == 0)
+        {
+            if (preferredFactionId.IsNone)
+            {
+                return null;
+            }
+
+            return TryGetUnbornSlot(roster, EntityId.None);
+        }
+
+        return candidates[_random.Next(candidates.Count)];
+    }
+
+    private static EntityId ResolvePreferredFactionId(Character mother, Character? father)
+    {
+        if (!mother.FactionId.IsNone)
+        {
+            return mother.FactionId;
+        }
+
+        if (father is not null && !father.FactionId.IsNone)
+        {
+            return father.FactionId;
+        }
+
+        return EntityId.None;
+    }
+
+    private string ResolveNewbornName( Sex sex, EntityId preferredFactionId, Character mother, Character? father, int id )
+    {
+        var fromPool = _namePool.GetRandomName(sex, preferredFactionId, _random);
+        if (!string.IsNullOrWhiteSpace(fromPool))
+        {
+            return fromPool!;
+        }
+
+        return GenerateNewbornName(mother, father, id);
+    }
+
+    private static string GenerateNewbornName(Character mother, Character? father, int id)
+    {
+        if (!string.IsNullOrWhiteSpace(mother.Name) && father is not null && !string.IsNullOrWhiteSpace(father.Name))
+        {
+            return $"Child {id} of {mother.Name} and {father.Name}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(mother.Name))
+        {
+            return $"Child {id} of {mother.Name}";
+        }
+
+        return $"Child {id}";
+    }
+
+    private sealed class EmptyNamePool : INamePool
+    {
+        public string? GetRandomName(Sex sex, EntityId factionId, IRandomSource random) => null;
     }
 
     private static void ApplyDeath(Character character, List<Character> deaths)
