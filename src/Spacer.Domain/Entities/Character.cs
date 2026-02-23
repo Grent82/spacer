@@ -87,6 +87,16 @@ public sealed class Character
         PartnerId = partnerId;
     }
 
+    public void SetPartner(EntityId partnerId)
+    {
+        PartnerId = partnerId;
+    }
+
+    public void ClearPartner()
+    {
+        PartnerId = EntityId.None;
+    }
+
     public void SetPersonality(PersonalityType personality)
     {
         Personality = personality;
