@@ -1,6 +1,9 @@
 namespace Spacer.Application.UseCases;
 
+using System;
+using System.Collections.Generic;
 using Spacer.Application.Config;
+using Spacer.Application.Events;
 using Spacer.Application.Ports;
 using Spacer.Application.Services;
 using Spacer.Domain.Entities;
@@ -15,6 +18,10 @@ public sealed class RunTurnUseCase
     private readonly WeaponResearchProgressionService _researchService;
     private readonly FactionPoliticsTurnService _factionPoliticsService;
     private readonly CharacterLifecycleTurnService _characterLifecycleService;
+    private readonly IEventQueue _eventQueue;
+    private readonly EventDispatcher _eventDispatcher;
+    private readonly EventContextBuilder _eventContextBuilder;
+    private readonly IGameTime _gameTime;
     private readonly GameConfig _config;
 
     public RunTurnUseCase(
@@ -25,6 +32,10 @@ public sealed class RunTurnUseCase
         WeaponResearchProgressionService researchService,
         FactionPoliticsTurnService factionPoliticsService,
         CharacterLifecycleTurnService characterLifecycleService,
+        IEventQueue eventQueue,
+        EventDispatcher eventDispatcher,
+        EventContextBuilder eventContextBuilder,
+        IGameTime gameTime,
         GameConfig config
     )
     {
@@ -35,11 +46,17 @@ public sealed class RunTurnUseCase
         _researchService = researchService;
         _factionPoliticsService = factionPoliticsService;
         _characterLifecycleService = characterLifecycleService;
+        _eventQueue = eventQueue;
+        _eventDispatcher = eventDispatcher;
+        _eventContextBuilder = eventContextBuilder;
+        _gameTime = gameTime;
         _config = config;
     }
 
-    public void Execute()
+    public IReadOnlyList<DispatchedEvent> Execute()
     {
+        var rules = _config.GameRules with { CurrentMonth = _gameTime.Month };
+
         // 1) Reset per-turn flags.
         foreach (var planet in _planets.GetAll())
         {
@@ -50,7 +67,7 @@ public sealed class RunTurnUseCase
         var allPlanets = _planets.GetAll();
         _economyTurnService.ApplyPlanetEconomy(
             allPlanets,
-            _config.GameRules,
+            rules,
             _config.PlanetEconomyRules,
             planet => planet.RulerId.IsNone
                 ? FleetPostureSummary.Empty
@@ -75,15 +92,77 @@ public sealed class RunTurnUseCase
         }
 
         // 4) Character lifecycle (aging, births, deaths).
-        _characterLifecycleService.Apply(
-            _config.GameRules,
+        var lifecycleResult = _characterLifecycleService.Apply(
+            rules,
             _config.CharacterLifecycleRules,
             _config.FactionPoliticsRules
         );
 
         // 5) Faction politics (defection/joining).
-        _factionPoliticsService.Apply(_config.GameRules, _config.FactionPoliticsRules, _config.PlanetEconomyRules);
+        _factionPoliticsService.Apply(rules, _config.FactionPoliticsRules, _config.PlanetEconomyRules);
 
-        // 6) Additional per-turn systems (diplomacy, battles, events) TBD.
+        // 6) Enqueue data-only events and render them for the UI.
+        EnqueueBirthEvents(lifecycleResult, rules);
+
+        var queued = _eventQueue.Drain();
+        if (queued.Count == 0)
+        {
+            _gameTime.AdvanceTurn();
+            return Array.Empty<DispatchedEvent>();
+        }
+
+        var rendered = new List<DispatchedEvent>(queued.Count);
+        foreach (var request in queued)
+        {
+            var result = _eventDispatcher.RunById(request.EventId, request.Context);
+            if (result is null)
+            {
+                continue;
+            }
+
+            rendered.Add(new DispatchedEvent(request.EventId, result));
+        }
+
+        _gameTime.AdvanceTurn();
+        return rendered;
+    }
+
+    private void EnqueueBirthEvents(CharacterLifecycleResult lifecycleResult, GameRules rules)
+    {
+        if (lifecycleResult.Births.Count == 0)
+        {
+            return;
+        }
+
+        if (rules.PlayerOverlordId.IsNone)
+        {
+            return;
+        }
+
+        var player = _characters.FindById(rules.PlayerOverlordId);
+        foreach (var newborn in lifecycleResult.Births)
+        {
+            if (newborn.FatherId != rules.PlayerOverlordId && newborn.MotherId != rules.PlayerOverlordId)
+            {
+                continue;
+            }
+
+            var mother = _characters.FindById(newborn.MotherId);
+            var father = _characters.FindById(newborn.FatherId);
+
+            _eventQueue.Enqueue(new EventRequest(
+                "birth_olivia_child",
+                _eventContextBuilder.Build(
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["birthFlag"] = "true",
+                        ["childName"] = newborn.Name
+                    },
+                    ("mother", mother),
+                    ("father", father),
+                    ("child", newborn)
+                )
+            ));
+        }
     }
 }

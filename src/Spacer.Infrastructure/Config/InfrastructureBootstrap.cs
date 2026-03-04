@@ -38,6 +38,7 @@ public static class InfrastructureBootstrap
             characterPaths.Add(scenarioCharactersPath);
         }
 
+        var scenarioTimePath = Path.Combine(dataRoot, "scenario_" + scenario + ".json");
         var mainMapPath = Path.Combine(dataRoot, "main_map_" + scenario + ".csv");
         var defMapPath = Path.Combine(dataRoot, "defmap_" + scenario + ".csv");
         var planetPath = Path.Combine(dataRoot, "planets_scenario_" + scenario + ".csv");
@@ -64,8 +65,10 @@ public static class InfrastructureBootstrap
         var fleetPostureProvider = new StubFleetPostureProvider();
         var characterRepository = new CsvCharacterRepository( characterPaths, config.FactionPoliticsRules );
         var characterRoster = characterRepository;
-        var gameClock = new GameClock(startYear: 1, startMonth: config.GameRules.CurrentMonth, monthsInYear: config.GameRules.MonthsInYear);
+        var scenarioTime = ScenarioTimeConfigLoader.Load(scenarioTimePath, fallbackYear: 1, fallbackMonth: config.GameRules.CurrentMonth);
+        var gameClock = new GameClock(startYear: scenarioTime.StartYear, startMonth: scenarioTime.StartMonth, monthsInYear: config.GameRules.MonthsInYear);
         var eventContextBuilder = new EventContextBuilder(characterRepository, gameClock, () => config.GameRules.PlayerOverlordId);
+        var gameTimeStore = new JsonGameTimeStore(Path.Combine(dataRoot, "savegame_time.json"));
 
         var rebuildService = new FleetSpecRebuildService(
             shipCatalog,
@@ -93,6 +96,7 @@ public static class InfrastructureBootstrap
             eventDispatcher,
             eventContextBuilder,
             gameClock,
+            gameTimeStore,
             mapLayoutRepository,
             specStore,
             fleetPostureProvider,
@@ -119,6 +123,7 @@ public sealed record InfrastructureServices(
     EventDispatcher EventDispatcher,
     EventContextBuilder EventContextBuilder,
     IGameTime GameTime,
+    IGameTimeStore GameTimeStore,
     IMapLayoutRepository MapLayoutRepository,
     IPlanetFleetSpecStore PlanetFleetSpecStore,
     IFleetPostureProvider FleetPostureProvider,

@@ -1,9 +1,27 @@
 namespace Spacer.Application.UseCases;
 
+using Spacer.Application.Ports;
+
 public sealed class LoadSaveUseCase
 {
-    public void Execute()
+    private readonly IGameTime _gameTime;
+    private readonly IGameTimeStore _gameTimeStore;
+
+    public LoadSaveUseCase(IGameTime gameTime, IGameTimeStore gameTimeStore)
     {
-        throw new NotImplementedException();
+        _gameTime = gameTime;
+        _gameTimeStore = gameTimeStore;
+    }
+
+    public bool Execute()
+    {
+        var snapshot = _gameTimeStore.Load();
+        if (snapshot is null)
+        {
+            return false;
+        }
+
+        _gameTime.Set(snapshot.Year, snapshot.Month);
+        return true;
     }
 }
