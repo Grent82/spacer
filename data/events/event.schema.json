@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Spacer Event (Data Only)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "steps"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/condition"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+  "$defs": {
+    "condition": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "all"
+          ],
+          "properties": {
+            "all": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "any"
+          ],
+          "properties": {
+            "any": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/condition"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "not"
+          ],
+          "properties": {
+            "not": {
+              "$ref": "#/$defs/condition"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "args": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        }
+      ]
+    },
+    "step": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/messageStep"
+        },
+        {
+          "$ref": "#/$defs/titleStep"
+        },
+        {
+          "$ref": "#/$defs/choiceStep"
+        }
+      ]
+    },
+    "messageStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Message"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "textKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "speaker": {
+          "type": "string"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "textKey"
+          ]
+        }
+      ]
+    },
+    "titleStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "Title"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "textKey": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "textKey"
+          ]
+        }
+      ]
+    },
+    "choiceStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "options"
+      ],
+      "properties": {
+        "type": {
+          "const": "Choice"
+        },
+        "promptText": {
+          "type": "string"
+        },
+        "promptTextKey": {
+          "type": "string"
+        },
+        "options": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/choiceOption"
+          }
+        },
+        "shuffle": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "choiceOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "steps"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "textKey": {
+          "type": "string",
+          "minLength": 1
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "text"
+          ]
+        },
+        {
+          "required": [
+            "textKey"
+          ]
+        }
+      ]
+    }
+  }
+}

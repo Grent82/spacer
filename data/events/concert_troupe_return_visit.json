@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "conditions": [
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "year",
+        "value": 83
+      }
+    },
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "month",
+        "value": 9
+      }
+    },
+    {
+      "type": "VarGreaterOrEqual",
+      "args": {
+        "key": "playerMerits",
+        "value": 13000
+      }
+    },
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "oliviaState",
+        "value": 16
+      }
+    },
+    {
+      "type": "VarNotEquals",
+      "args": {
+        "key": "playerStatus0",
+        "value": 4
+      }
+    }
+  ],
+  "steps": [
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "Your Majesty, a singing troupe has come to pay their respects."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Singing... could it be that Olivia?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{narrator}",
+      "text": "The Olivia troupe had visited this star system before, and {playerName} already knew them."
+    },
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "So you already know them?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Hmm..."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Very well. I will see them."
+    },
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "Understood."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "Your Majesty, we are grateful for your help long ago."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Yes. The last performance was well received."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "The soldiers were pleased."
+    },
+    {
+      "type": "Message",
+      "speaker": "{olivia}",
+      "text": "Thank you, King {playerName}."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "It has been a while, Olivia."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Was it about six years ago?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{olivia}",
+      "text": "Yes. I am honored you remember."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "We plan to perform here again."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "May we have your permission?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Let me consider it..."
+    },
+    {
+      "type": "Choice",
+      "options": [
+        {
+          "text": "Grant permission",
+          "steps": [
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "Very well."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "You have my permission."
+            },
+            {
+              "type": "Message",
+              "speaker": "{manager}",
+              "text": "Oh, thank you."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "Lift the soldiers' spirits again."
+            },
+            {
+              "type": "Message",
+              "speaker": "{olivia}",
+              "text": "We are grateful, King {playerName}."
+            }
+          ]
+        },
+        {
+          "text": "Deny permission",
+          "steps": [
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "I cannot allow it."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "This time, circumstances are different."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "Our kingdom is in a very tense situation."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "We cannot give the soldiers extra stimulation now."
+            },
+            {
+              "type": "Message",
+              "speaker": "{olivia}",
+              "text": "W-what..."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "You will leave this planet tomorrow."
+            },
+            {
+              "type": "Message",
+              "speaker": "{manager}",
+              "text": "I see... That is unfortunate, but it cannot be helped."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

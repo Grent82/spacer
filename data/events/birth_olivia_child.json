@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "conditions": [
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "birthFlag",
+        "value": true
+      }
+    },
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "childStatus0",
+        "value": 1
+      }
+    }
+  ],
+  "steps": [
+    {
+      "type": "Message",
+      "speaker": "{mother}",
+      "text": "Look, {playerName}."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Oh, adorable."
+    },
+    {
+      "type": "Message",
+      "speaker": "{mother}",
+      "text": "What should we name her?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{mother}",
+      "text": "{childName} would be lovely."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "{childName}... yes."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "{childName} will do."
+    },
+    {
+      "type": "Message",
+      "speaker": "{mother}",
+      "text": "That is a lovely name."
+    },
+    {
+      "type": "Message",
+      "speaker": "{mother}",
+      "text": "I will give you many more."
+    },
+    {
+      "type": "Message",
+      "speaker": "{mother}",
+      "text": "So keep your stamina up."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Y-yes..."
+    },
+    {
+      "type": "Title",
+      "text": "{childName} was born."
+    }
+  ]
+}

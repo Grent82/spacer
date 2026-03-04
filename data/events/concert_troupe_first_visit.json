@@ -1,0 +1,202 @@
+{
+  "version": 1,
+  "conditions": [
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "year",
+        "value": 77
+      }
+    },
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "month",
+        "value": 8
+      }
+    },
+    {
+      "type": "VarGreaterOrEqual",
+      "args": {
+        "key": "playerMerits",
+        "value": 13000
+      }
+    },
+    {
+      "type": "VarEquals",
+      "args": {
+        "key": "oliviaState",
+        "value": 16
+      }
+    },
+    {
+      "type": "VarNotEquals",
+      "args": {
+        "key": "playerStatus0",
+        "value": 4
+      }
+    }
+  ],
+  "steps": [
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "Your Majesty, a singing troupe has come to pay their respects."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Singing?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "Yes. They travel the stars performing concerts."
+    },
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "They are said to be a fairly famous song maiden troupe."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Hmm..."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Very well. I will meet them."
+    },
+    {
+      "type": "Message",
+      "speaker": "{attendant}",
+      "text": "Understood."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "So you are the singing troupe."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "Yes, and thank you for permitting us to dock."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "I am Olivia's manager."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "And this is our song maiden, Olivia."
+    },
+    {
+      "type": "Message",
+      "speaker": "{olivia}",
+      "text": "I am Olivia."
+    },
+    {
+      "type": "Message",
+      "speaker": "{olivia}",
+      "text": "It is an honor to meet you, King {playerName}."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "So you are the singer?"
+    },
+    {
+      "type": "Message",
+      "speaker": "{olivia}",
+      "text": "Yes."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "If possible, we would like permission to hold a concert on this planet."
+    },
+    {
+      "type": "Message",
+      "speaker": "{manager}",
+      "text": "It should raise the morale of your troops."
+    },
+    {
+      "type": "Message",
+      "speaker": "{player}",
+      "text": "Let me consider it..."
+    },
+    {
+      "type": "Choice",
+      "options": [
+        {
+          "text": "Grant permission",
+          "steps": [
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "Very well."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "You have my permission."
+            },
+            {
+              "type": "Message",
+              "speaker": "{manager}",
+              "text": "Oh, thank you."
+            },
+            {
+              "type": "Message",
+              "speaker": "{olivia}",
+              "text": "We are grateful, King {playerName}."
+            }
+          ]
+        },
+        {
+          "text": "Deny permission",
+          "steps": [
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "I cannot allow it."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "Your music is not to my taste."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "You will not sing on this planet."
+            },
+            {
+              "type": "Message",
+              "speaker": "{olivia}",
+              "text": "W-what..."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "You will leave this planet by tomorrow."
+            },
+            {
+              "type": "Message",
+              "speaker": "{player}",
+              "text": "Otherwise you will be imprisoned on suspicion of spying."
+            },
+            {
+              "type": "Message",
+              "speaker": "{manager}",
+              "text": "I see... That is unfortunate, but it cannot be helped."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

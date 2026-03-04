@@ -8,6 +8,7 @@ using Spacer.Application.Services;
 using Spacer.Domain.Services;
 using Spacer.Infrastructure.Persistence;
 using Spacer.Infrastructure.Services;
+using Spacer.Application.Events;
 
 public static class InfrastructureBootstrap
 {
@@ -21,6 +22,7 @@ public static class InfrastructureBootstrap
         var factionPath = Path.Combine(dataRoot, "factions.csv");
         var itemPath = Path.Combine(dataRoot, "items.csv");
         var namePoolPath = Path.Combine(dataRoot, "name_pool.csv");
+        var eventPath = Path.Combine(dataRoot, "events");
         if (!File.Exists(itemPath))
         {
             itemPath = Path.Combine(dataRoot, "item.csv");
@@ -49,6 +51,12 @@ public static class InfrastructureBootstrap
         var namePool = File.Exists(namePoolPath)
             ? new CsvNamePool(namePoolPath)
             : new CsvNamePool(Path.Combine(dataRoot, "names.csv"));
+        var eventCatalog = new JsonEventCatalog(eventPath);
+        var eventStateStore = new InMemoryEventStateStore();
+        var eventQueue = new InMemoryEventQueue();
+        var eventRenderer = new EventRenderer();
+        var eventPreconditionEvaluator = new EventPreconditionEvaluator();
+        var eventDispatcher = new EventDispatcher(eventCatalog, eventRenderer, eventPreconditionEvaluator);
         var mapLayoutRepository = new CsvMapLayoutRepository(mainMapPath, defMapPath);
         var planetRepository = new CsvPlanetRepository(planetPath);
         var specStore = new InMemoryPlanetFleetSpecStore();
@@ -56,6 +64,8 @@ public static class InfrastructureBootstrap
         var fleetPostureProvider = new StubFleetPostureProvider();
         var characterRepository = new CsvCharacterRepository( characterPaths, config.FactionPoliticsRules );
         var characterRoster = characterRepository;
+        var gameClock = new GameClock(startYear: 1, startMonth: config.GameRules.CurrentMonth, monthsInYear: config.GameRules.MonthsInYear);
+        var eventContextBuilder = new EventContextBuilder(characterRepository, gameClock, () => config.GameRules.PlayerOverlordId);
 
         var rebuildService = new FleetSpecRebuildService(
             shipCatalog,
@@ -77,6 +87,12 @@ public static class InfrastructureBootstrap
             factionCatalog,
             itemCatalog,
             namePool,
+            eventCatalog,
+            eventStateStore,
+            eventQueue,
+            eventDispatcher,
+            eventContextBuilder,
+            gameClock,
             mapLayoutRepository,
             specStore,
             fleetPostureProvider,
@@ -97,6 +113,12 @@ public sealed record InfrastructureServices(
     IFactionCatalog FactionCatalog,
     IItemCatalog ItemCatalog,
     INamePool NamePool,
+    IEventCatalog EventCatalog,
+    IEventStateStore EventStateStore,
+    IEventQueue EventQueue,
+    EventDispatcher EventDispatcher,
+    EventContextBuilder EventContextBuilder,
+    IGameTime GameTime,
     IMapLayoutRepository MapLayoutRepository,
     IPlanetFleetSpecStore PlanetFleetSpecStore,
     IFleetPostureProvider FleetPostureProvider,
