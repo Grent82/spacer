@@ -233,3 +233,11 @@ rai7*.*
 _Hints.txt
 
 eve/
+
+
+./claude/settings.json
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
