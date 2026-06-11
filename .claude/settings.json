@@ -1,7 +1,13 @@
 {
   "enabledPlugins": {
+    "superpowers@claude-plugins-official": true,
+    "ralph-loop@claude-plugins-official": true,
     "context7@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "skill-creator@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true,
+    "commit-commands@claude-plugins-official": true
   },
   "env": {
     "ANTHROPIC_API_KEY": "sk-K5FI1yOMuxd8-0oWZitQrg",
@@ -26,6 +32,10 @@
         "hooks": [
           {
             "command": "bd preflight",
+            "type": "command"
+          },
+          {
+            "command": "echo 'C.L.E.A.R. Review required before bd close'",
             "type": "command"
           }
         ],
