@@ -34,7 +34,7 @@ public sealed class EconomyTurnService
         GameRules gameRules,
         PlanetEconomyRules economyRules,
         PlanetResearchRules researchRules,
-        Func<Planet, FleetPostureSummary> postureProvider
+        Func<EntityId, FleetPostureSummary> postureProvider
     )
     {
         if (planets.Count == 0)
@@ -131,20 +131,21 @@ public sealed class EconomyTurnService
         IReadOnlyDictionary<EntityId, List<Planet>> planetsByFaction,
         IReadOnlyDictionary<EntityId, Planet> capitalsByFaction,
         PlanetEconomyRules rules,
-        Func<Planet, FleetPostureSummary> postureProvider
+        Func<EntityId, FleetPostureSummary> postureProvider
     )
     {
         foreach (var entry in capitalsByFaction)
         {
             var capital = entry.Value;
-            var posture = postureProvider(capital);
+            var factionId = entry.Key;
+            var posture = postureProvider(factionId);
             var loyaltyDelta = ComputeLoyaltyDriftFromPosture(capital, posture, rules);
             if (loyaltyDelta == 0)
             {
                 continue;
             }
 
-            if (!planetsByFaction.TryGetValue(entry.Key, out var factionPlanets))
+            if (!planetsByFaction.TryGetValue(factionId, out var factionPlanets))
             {
                 continue;
             }

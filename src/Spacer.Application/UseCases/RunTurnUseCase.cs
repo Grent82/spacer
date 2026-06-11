@@ -70,9 +70,9 @@ public sealed class RunTurnUseCase
             rules,
             _config.PlanetEconomyRules,
             _config.PlanetResearchRules,
-            planet => planet.RulerId.IsNone
+            rulerId => rulerId.IsNone
                 ? FleetPostureSummary.Empty
-                : _fleetPostureProvider.GetForRuler(planet.RulerId)
+                : _fleetPostureProvider.GetForRuler(rulerId)
         );
 
         // 3) Research progression (weapon release unlocks).

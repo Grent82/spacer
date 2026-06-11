@@ -1,10 +1,13 @@
 namespace Spacer.Infrastructure.Config;
 
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Spacer.Application.Config;
 using Spacer.Application.Ports;
 using Spacer.Application.Services;
+using Spacer.Domain.Entities;
 using Spacer.Domain.Services;
 using Spacer.Infrastructure.Persistence;
 using Spacer.Infrastructure.Services;
@@ -82,7 +85,9 @@ public static class InfrastructureBootstrap
         var planetRepository = new CsvPlanetRepository(planetPath);
         var specStore = new InMemoryPlanetFleetSpecStore();
         var planetResearch = new PlanetResearchService();
-        var fleetPostureProvider = new StubFleetPostureProvider();
+        var fleetRepository = new FleetRepository();
+        var allPlanetsList = planetRepository.GetAll().ToList();
+        var fleetPostureProvider = new SimpleFleetPostureProvider(fleetRepository, allPlanetsList);
         var characterRepository = new CsvCharacterRepository( characterPaths, config.FactionPoliticsRules );
         var characterRoster = characterRepository;
         var scenarioTime = ScenarioTimeConfigLoader.Load(scenarioTimePath, fallbackYear: 1, fallbackMonth: config.GameRules.CurrentMonth);
