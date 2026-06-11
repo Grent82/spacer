@@ -13,17 +13,28 @@ public sealed class CharacterLifecycleTurnService
     private readonly ICharacterStore _characters;
     private readonly IRandomSource _random;
     private readonly INamePool _namePool;
+    private readonly IEventQueue? _eventQueue;
 
-    public CharacterLifecycleTurnService(ICharacterStore characters, IRandomSource random)
-        : this(characters, random, new EmptyNamePool())
+    public CharacterLifecycleTurnService(
+        ICharacterStore characters,
+        IRandomSource random,
+        IEventQueue? eventQueue = null
+    )
+        : this(characters, random, new EmptyNamePool(), eventQueue)
     {
     }
 
-    public CharacterLifecycleTurnService(ICharacterStore characters, IRandomSource random, INamePool namePool)
+    public CharacterLifecycleTurnService(
+        ICharacterStore characters,
+        IRandomSource random,
+        INamePool namePool,
+        IEventQueue? eventQueue = null
+    )
     {
         _characters = characters;
         _random = random;
         _namePool = namePool;
+        _eventQueue = eventQueue;
     }
 
     public CharacterLifecycleResult Apply(
@@ -61,10 +72,21 @@ public sealed class CharacterLifecycleTurnService
 
             if (ShouldProgressPregnancy(character))
             {
-                var newborn = TryResolvePregnancy(character, roster, gameRules, rules, politicsRules, ref nextGeneratedId);
-                if (newborn is not null)
+                var pregnancyResult = TryResolvePregnancy(
+                    character,
+                    roster,
+                    gameRules,
+                    rules,
+                    politicsRules,
+                    ref nextGeneratedId
+                );
+                if (pregnancyResult.Newborn is not null)
                 {
-                    births.Add(newborn);
+                    births.Add(pregnancyResult.Newborn);
+                }
+                if (pregnancyResult.Miscarriage && _eventQueue is not null)
+                {
+                    EnqueueMiscarriageEvent(character, gameRules);
                 }
             }
         }
@@ -160,18 +182,18 @@ public sealed class CharacterLifecycleTurnService
     {
         character.SetAge(character.Age + 1);
 
-        if (character.SpecialFlags == 2 && character.Age < rules.ImmortalUntilAge)
+        if (character.SpecialFlags == 2 && character.Age < rules.Death.ImmortalUntilAge)
         {
             return false;
         }
 
         if (character.AgeOfDeath > 0 && character.Age >= character.AgeOfDeath)
         {
-            ApplyDeath(character, deaths);
+            ApplyDeath(character, deaths, rules.Death.EnableDeathEvents);
             return true;
         }
 
-        if (!rules.EnableOldAgeDeath || character.Age <= rules.OldAgeStart)
+        if (!rules.Death.EnableOldAgeDeath || character.Age <= rules.Death.OldAgeStart)
         {
             return false;
         }
@@ -181,13 +203,13 @@ public sealed class CharacterLifecycleTurnService
             return false;
         }
 
-        if (rules.OldAgeRollMax <= 0)
+        if (rules.Death.OldAgeRollMax <= 0)
         {
             return false;
         }
 
         var profile = SelectOldAgeProfile(character, rules);
-        var roll = _random.Next(rules.OldAgeRollMax);
+        var roll = _random.Next(rules.Death.OldAgeRollMax);
         var shouldSchedule = false;
 
         if (character.Age > profile.Stage1Age && roll < profile.Stage1RollThreshold)
@@ -218,10 +240,10 @@ public sealed class CharacterLifecycleTurnService
         var noble = character.Rank >= rules.NobleRankThreshold;
         if (character.Sex == Sex.Female)
         {
-            return noble ? rules.NobleFemale : rules.CommonFemale;
+            return noble ? rules.Death.NobleFemale : rules.Death.CommonFemale;
         }
 
-        return noble ? rules.NobleMale : rules.CommonMale;
+        return noble ? rules.Death.NobleMale : rules.Death.CommonMale;
     }
 
     private static bool ShouldProgressPregnancy(Character character)
@@ -244,7 +266,11 @@ public sealed class CharacterLifecycleTurnService
             || character.State == CharacterState.Commoner;
     }
 
-    private Character? TryResolvePregnancy(
+    /// <summary>
+    /// Returns pregnancy result with newborn or miscarriage flag.
+    /// </summary>
+
+    private (Character? Newborn, bool Miscarriage) TryResolvePregnancy(
         Character mother,
         IReadOnlyList<Character> roster,
         GameRules gameRules,
@@ -255,18 +281,38 @@ public sealed class CharacterLifecycleTurnService
     {
         mother.SetPregnancyMonths(mother.PregnancyMonths + 1);
 
-        if (rules.PregnancyAbortMonth > 0
-            && mother.PregnancyMonths == rules.PregnancyAbortMonth
+        // Check for loyalty-based abort.
+        if (rules.Pregnancy.AbortMonth > 0
+            && mother.PregnancyMonths == rules.Pregnancy.AbortMonth
             && mother.PregnancyPartnerId == gameRules.PlayerOverlordId
-            && mother.Loyalty < rules.PregnancyAbortLoyaltyThreshold)
+            && mother.Loyalty < rules.Pregnancy.AbortLoyaltyThreshold)
         {
             mother.ClearPregnancy();
-            return null;
+            return (null, false);
         }
 
-        if (rules.PregnancyLengthMonths <= 0 || mother.PregnancyMonths < rules.PregnancyLengthMonths)
+        // Check for miscarriage (after abort month, before full term).
+        if (rules.Pregnancy.MiscarriageChancePercent > 0
+            && mother.PregnancyMonths > rules.Pregnancy.MiscarriageAfterMonth
+            && mother.PregnancyMonths < rules.Pregnancy.LengthMonths)
         {
-            return null;
+            var roll = _random.Next(100);
+            if (roll < rules.Pregnancy.MiscarriageChancePercent)
+            {
+                mother.ClearPregnancy();
+                return (null, true);
+            }
+        }
+
+        // Check for pregnancy milestone events.
+        if (rules.Pregnancy.EnableMilestoneEvents && _eventQueue is not null)
+        {
+            EnqueuePregnancyMilestoneEvent(mother, gameRules);
+        }
+
+        if (rules.Pregnancy.LengthMonths <= 0 || mother.PregnancyMonths < rules.Pregnancy.LengthMonths)
+        {
+            return (null, false);
         }
 
         var father = mother.PregnancyPartnerId.IsNone ? null : _characters.FindById(mother.PregnancyPartnerId);
@@ -288,10 +334,20 @@ public sealed class CharacterLifecycleTurnService
             nextGeneratedId++;
         }
         mother.ClearPregnancy();
-        return newborn;
+        return (newborn, false);
     }
 
-    private Character CreateNewborn( Character mother, Character? father, EntityId preferredFactionId, GameRules gameRules, CharacterLifecycleRules rules, FactionPoliticsRules politicsRules, int id, Character? slot, out bool usedSlot )
+    private Character CreateNewborn(
+        Character mother,
+        Character? father,
+        EntityId preferredFactionId,
+        GameRules gameRules,
+        CharacterLifecycleRules rules,
+        FactionPoliticsRules politicsRules,
+        int id,
+        Character? slot,
+        out bool usedSlot
+    )
     {
         usedSlot = slot is not null;
         var chosenSex = slot?.Sex ?? (_random.Next(2) == 0 ? Sex.Male : Sex.Female);
@@ -318,7 +374,7 @@ public sealed class CharacterLifecycleTurnService
         newborn.SetMonthOfBirth(birthMonth);
 
         var fatherId = mother.PregnancyPartnerId;
-        newborn.SetFamily( fatherId, mother.Id, EntityId.None );
+        newborn.SetFamily(fatherId, mother.Id, EntityId.None);
 
         if (!mother.FactionId.IsNone || !mother.OverlordId.IsNone)
         {
@@ -340,6 +396,10 @@ public sealed class CharacterLifecycleTurnService
         }
 
         newborn.SetState(newbornState);
+
+        // Apply stat inheritance from parents.
+        ApplyStatInheritance(newborn, mother, father, rules.StatInheritance, _random);
+
         return newborn;
     }
 
@@ -428,10 +488,132 @@ public sealed class CharacterLifecycleTurnService
         public string? GetRandomName(Sex sex, EntityId factionId, IRandomSource random) => null;
     }
 
-    private static void ApplyDeath(Character character, List<Character> deaths)
+    private void ApplyDeath(Character character, List<Character> deaths, bool enqueueEvent)
     {
         character.SetState(CharacterState.Dead);
         character.ClearPregnancy();
         deaths.Add(character);
+
+        if (enqueueEvent && _eventQueue is not null)
+        {
+            EnqueueDeathEvent(character);
+        }
+    }
+
+    /// <summary>
+    /// Applies stat inheritance from parents to newborn using weighted averaging and randomness.
+    /// </summary>
+    private static void ApplyStatInheritance(
+        Character newborn,
+        Character mother,
+        Character? father,
+        NewbornStatInheritanceRules rules,
+        IRandomSource random
+    )
+    {
+        // Get parent stats (use 0 if parent is null).
+        var motherStats = mother.BaseStats;
+        var fatherStats = father?.BaseStats ?? new StatBlock(0, 0, 0, 0, 0, 0);
+
+        // Calculate average from both parents.
+        var avgAttack = (motherStats.Attack + fatherStats.Attack) / 2;
+        var avgDefense = (motherStats.Defense + fatherStats.Defense) / 2;
+        var avgIntelligence = (motherStats.Intelligence + fatherStats.Intelligence) / 2;
+        var avgStrength = (motherStats.Strength + fatherStats.Strength) / 2;
+        var avgCharisma = (motherStats.Charisma + fatherStats.Charisma) / 2;
+        var avgCleverness = (motherStats.Cleverness + fatherStats.Cleverness) / 2;
+
+        // Add base randomness.
+        var attack = avgAttack + rules.BaseStatMin + random.Next(rules.BaseStatMax - rules.BaseStatMin);
+        var defense = avgDefense + rules.BaseStatMin + random.Next(rules.BaseStatMax - rules.BaseStatMin);
+        var intelligence = avgIntelligence + rules.BaseStatMin + random.Next(rules.BaseStatMax - rules.BaseStatMin);
+        var strength = avgStrength + rules.BaseStatMin + random.Next(rules.BaseStatMax - rules.BaseStatMin);
+        var charisma = avgCharisma + rules.BaseStatMin + random.Next(rules.BaseStatMax - rules.BaseStatMin);
+        var cleverness = avgCleverness + rules.BaseStatMin + random.Next(rules.BaseStatMax - rules.BaseStatMin);
+
+        // Add parent average bonus.
+        attack += rules.StatBonusFromParentAverage;
+        defense += rules.StatBonusFromParentAverage;
+        intelligence += rules.StatBonusFromParentAverage;
+        strength += rules.StatBonusFromParentAverage;
+        charisma += rules.StatBonusFromParentAverage;
+        cleverness += rules.StatBonusFromParentAverage;
+
+        // Apply cleverness weight (slight bias toward higher cleverness parent).
+        var fatherCleverness = father?.Cleverness ?? 0;
+        if (mother.Cleverness > fatherCleverness)
+        {
+            cleverness += random.Next(rules.ClevernessWeight);
+        }
+        else if (father is not null)
+        {
+            cleverness += random.Next(rules.ClevernessWeight);
+        }
+
+        // Clamp values.
+        attack = Math.Max(1, Math.Min(100, attack));
+        defense = Math.Max(1, Math.Min(100, defense));
+        intelligence = Math.Max(1, Math.Min(100, intelligence));
+        strength = Math.Max(1, Math.Min(100, strength));
+        charisma = Math.Max(1, Math.Min(100, charisma));
+        cleverness = Math.Max(1, Math.Min(100, cleverness));
+
+        // Skills based on parent averages.
+        var battle = (mother.Battle + (father?.Battle ?? 0)) / 2 + random.Next(5);
+        var diplomacy = (mother.Diplomacy + (father?.Diplomacy ?? 0)) / 2 + random.Next(5);
+
+        newborn.ConfigureStats(
+            attack,
+            defense,
+            intelligence,
+            strength,
+            charisma,
+            cleverness,
+            battle,
+            diplomacy
+        );
+    }
+
+    private void EnqueuePregnancyMilestoneEvent(Character mother, GameRules gameRules)
+    {
+        // Enqueue pregnancy milestone event (month 1, 3, 6, etc.).
+        // This is a placeholder for event-driven pregnancy notifications.
+        if (_eventQueue is null) return;
+
+        var milestone = mother.PregnancyMonths;
+        if (milestone == 1 || milestone == 3 || milestone == 6 || milestone == 8)
+        {
+            // Event would be enqueued here if event definitions exist.
+            // _eventQueue.Enqueue(new EventRequest($"pregnancy_month_{milestone}", ...));
+        }
+    }
+
+    private void EnqueueMiscarriageEvent(Character mother, GameRules gameRules)
+    {
+        // Enqueue miscarriage event for notification/handling.
+        if (_eventQueue is null) return;
+
+        // Event would be enqueued here if event definitions exist.
+        // _eventQueue.Enqueue(new EventRequest("miscarriage", ...));
+    }
+
+    private void EnqueueDeathEvent(Character deceased)
+    {
+        // Enqueue death event for notification/handling.
+        if (_eventQueue is null) return;
+
+        // Find related characters for context (partner, children).
+        var partner = !deceased.PartnerId.IsNone ? _characters.FindById(deceased.PartnerId) : null;
+        var children = new List<Character>();
+        foreach (var character in _characters.GetAll())
+        {
+            if (character.FatherId == deceased.Id || character.MotherId == deceased.Id)
+            {
+                children.Add(character);
+            }
+        }
+
+        // Event would be enqueued here if event definitions exist.
+        // _eventQueue.Enqueue(new EventRequest("character_death", ...));
     }
 }
