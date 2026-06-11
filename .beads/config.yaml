@@ -52,3 +52,7 @@
 # - linear.api-key
 # - github.org
 # - github.repo
+
+# Custom profiles for specialized workflows
+# Profiles are stored in .beads/profiles/ and can be invoked with --profile flag
+# - clear-review: C.L.E.A.R. Framework code review before closing tickets
