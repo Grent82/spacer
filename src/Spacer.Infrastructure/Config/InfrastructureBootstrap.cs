@@ -9,6 +9,7 @@ using Spacer.Domain.Services;
 using Spacer.Infrastructure.Persistence;
 using Spacer.Infrastructure.Services;
 using Spacer.Application.Events;
+using Spacer.Infrastructure.Events;
 
 public static class InfrastructureBootstrap
 {
@@ -57,6 +58,25 @@ public static class InfrastructureBootstrap
         var eventQueue = new InMemoryEventQueue();
         var eventRenderer = new EventRenderer();
         var eventPreconditionEvaluator = new EventPreconditionEvaluator();
+
+        // Create event engine with handlers (for future use).
+        var conditionHandlers = new List<IEventConditionHandler>
+        {
+            new VarEqualsConditionHandler(),
+            new VarGteConditionHandler(),
+            new VarExistsConditionHandler()
+        };
+        var actionHandlers = new List<IEventActionHandler>
+        {
+            new SetFlagActionHandler(),
+            new SetVarActionHandler(),
+            new AddVarActionHandler()
+        };
+        var conditionEvaluator = new EventConditionEvaluator(conditionHandlers);
+        var actionExecutor = new EventActionExecutor(actionHandlers);
+        var eventRunner = new EventRunner(actionExecutor, conditionEvaluator);
+        _ = new EventEngine(eventCatalog, conditionEvaluator, eventRunner, eventStateStore);
+
         var eventDispatcher = new EventDispatcher(eventCatalog, eventRenderer, eventPreconditionEvaluator);
         var mapLayoutRepository = new CsvMapLayoutRepository(mainMapPath, defMapPath);
         var planetRepository = new CsvPlanetRepository(planetPath);
