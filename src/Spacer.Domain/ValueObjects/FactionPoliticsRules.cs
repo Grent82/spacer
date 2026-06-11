@@ -1,5 +1,28 @@
 namespace Spacer.Domain.ValueObjects;
 
+public readonly record struct LoyaltyDriftRules(
+    int PerTurnBaseDrift,
+    int LowLoyaltyDriftMultiplier,
+    int HighLoyaltyDriftCap,
+    int PublicOpinionInfluencePercent,
+    int PopulationGrowthBonus,
+    int PopulationDeclinePenalty,
+    int WarTimeDriftMultiplier,
+    int PeaceTimeDriftBonus
+)
+{
+    public static readonly LoyaltyDriftRules Default = new(
+        PerTurnBaseDrift: 0,
+        LowLoyaltyDriftMultiplier: 2,
+        HighLoyaltyDriftCap: 5,
+        PublicOpinionInfluencePercent: 10,
+        PopulationGrowthBonus: 2,
+        PopulationDeclinePenalty: 5,
+        WarTimeDriftMultiplier: 3,
+        PeaceTimeDriftBonus: 1
+    );
+}
+
 public readonly record struct FactionPoliticsRules(
     int MinLoyalty,
     int MaxLoyalty,
@@ -23,7 +46,8 @@ public readonly record struct FactionPoliticsRules(
     int SuccessionRankPenalty1,
     int SuccessionRankPenalty2,
     int SuccessionRankPenalty3,
-    int SuccessionRankPenalty4
+    int SuccessionRankPenalty4,
+    LoyaltyDriftRules Drift
 )
 {
     public static readonly FactionPoliticsRules Default = new(
@@ -49,6 +73,7 @@ public readonly record struct FactionPoliticsRules(
         SuccessionRankPenalty1: 10,
         SuccessionRankPenalty2: 11,
         SuccessionRankPenalty3: 12,
-        SuccessionRankPenalty4: 13
+        SuccessionRankPenalty4: 13,
+        Drift: LoyaltyDriftRules.Default
     );
 }

@@ -12,6 +12,85 @@ public sealed class FactionPoliticsService
         character.AdjustLoyalty(delta, rules);
     }
 
+    /// <summary>
+    /// Computes per-turn loyalty drift based on various factors.
+    /// </summary>
+    public int ComputeLoyaltyDrift(
+        Character character,
+        int publicOpinion,
+        int populationDelta,
+        bool isAtWar,
+        FactionPoliticsRules rules
+    )
+    {
+        var drift = rules.Drift.PerTurnBaseDrift;
+
+        // Low loyalty characters drift faster toward defection.
+        if (character.Loyalty < rules.DefectionLoyaltyThreshold)
+        {
+            drift -= rules.Drift.LowLoyaltyDriftMultiplier;
+        }
+
+        // High loyalty characters have a cap on positive drift.
+        if (character.Loyalty >= rules.Drift.HighLoyaltyDriftCap)
+        {
+            drift = Math.Min(drift, 1);
+        }
+
+        // Public opinion influences loyalty.
+        if (publicOpinion > 55)
+        {
+            drift += publicOpinion * rules.Drift.PublicOpinionInfluencePercent / 1000;
+        }
+        else if (publicOpinion < 45)
+        {
+            drift -= (50 - publicOpinion) * rules.Drift.PublicOpinionInfluencePercent / 1000;
+        }
+
+        // Population changes affect loyalty.
+        if (populationDelta > 0)
+        {
+            drift += rules.Drift.PopulationGrowthBonus;
+        }
+        else if (populationDelta < 0)
+        {
+            drift -= rules.Drift.PopulationDeclinePenalty;
+        }
+
+        // War/peace status affects drift.
+        if (isAtWar)
+        {
+            drift *= rules.Drift.WarTimeDriftMultiplier;
+        }
+        else
+        {
+            drift += rules.Drift.PeaceTimeDriftBonus;
+        }
+
+        return drift;
+    }
+
+    /// <summary>
+    /// Applies per-turn loyalty drift to all faction members.
+    /// </summary>
+    public void ApplyLoyaltyDrift(
+        IReadOnlyList<Character> factionMembers,
+        int publicOpinion,
+        int populationDelta,
+        bool isAtWar,
+        FactionPoliticsRules rules
+    )
+    {
+        foreach (var member in factionMembers)
+        {
+            var drift = ComputeLoyaltyDrift(member, publicOpinion, populationDelta, isAtWar, rules);
+            if (drift != 0)
+            {
+                member.AdjustLoyalty(drift, rules);
+            }
+        }
+    }
+
     public void ApplySuccession(
         Character newLeader,
         IReadOnlyList<Character> members,

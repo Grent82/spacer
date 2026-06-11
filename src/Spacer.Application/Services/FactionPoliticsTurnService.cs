@@ -31,6 +31,11 @@ public sealed class FactionPoliticsTurnService
             return;
         }
 
+        var planets = _planets.GetAll();
+
+        // Apply per-turn loyalty drift before other politics.
+        ApplyLoyaltyDrift(characters, planets, rules);
+
         ApplySuccession(characters, rules, economyRules);
 
         var leaders = GetActiveLeaders(characters);
@@ -51,7 +56,7 @@ public sealed class FactionPoliticsTurnService
                 continue;
             }
 
-            var joined = _politicsService.TryJoinFaction( candidate, leaders, rules, _random, gameRules.PlayerOverlordId );
+            var joined = _politicsService.TryJoinFaction(candidate, leaders, rules, _random, gameRules.PlayerOverlordId);
             if (!joined && rules.DefectionCreatesIndependentFaction)
             {
                 if (_politicsService.ShouldDefect(candidate, rules, _random))
@@ -59,6 +64,55 @@ public sealed class FactionPoliticsTurnService
                     candidate.SetFaction(EntityId.None, EntityId.None);
                 }
             }
+        }
+    }
+
+    private void ApplyLoyaltyDrift(
+        IReadOnlyList<Character> characters,
+        IReadOnlyList<Planet> planets,
+        FactionPoliticsRules rules
+    )
+    {
+        // Group planets by faction for quick lookup.
+        var planetByFaction = new Dictionary<EntityId, Planet>();
+        foreach (var planet in planets)
+        {
+            if (!planet.OwnerFactionId.IsNone)
+            {
+                planetByFaction[planet.OwnerFactionId] = planet;
+            }
+        }
+
+        // Group characters by faction.
+        var factionMembers = new Dictionary<EntityId, List<Character>>();
+        foreach (var character in characters)
+        {
+            if (!character.FactionId.IsNone)
+            {
+                if (!factionMembers.TryGetValue(character.FactionId, out var list))
+                {
+                    list = new List<Character>();
+                    factionMembers[character.FactionId] = list;
+                }
+                list.Add(character);
+            }
+        }
+
+        // Apply drift for each faction.
+        foreach (var entry in factionMembers)
+        {
+            var factionId = entry.Key;
+            var members = entry.Value;
+
+            // Get faction's capital planet for public opinion and population.
+            planetByFaction.TryGetValue(factionId, out var capital);
+            var publicOpinion = capital?.PublicOpinion ?? 50;
+            var populationDelta = capital?.Population ?? 0;
+
+            // Simplified: assume peace for now (war detection would need fleet data).
+            var isAtWar = false;
+
+            _politicsService.ApplyLoyaltyDrift(members, publicOpinion, populationDelta, isAtWar, rules);
         }
     }
 
