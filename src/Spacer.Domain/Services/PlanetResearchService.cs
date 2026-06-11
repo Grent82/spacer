@@ -7,6 +7,103 @@ public sealed class PlanetResearchService
 {
     private const int WeaponResearchCategoryCount = 3;
 
+    /// <summary>
+    /// Applies research progression based on production investment.
+    /// </summary>
+    public bool ApplyResearchProgression(
+        Planet planet,
+        int productionToInvest,
+        PlanetResearchRules rules
+    )
+    {
+        if (productionToInvest <= 0)
+        {
+            return false;
+        }
+
+        var progressed = false;
+
+        // Distribute production across all research categories.
+        var productionPerCategory = productionToInvest / WeaponResearchCategoryCount;
+
+        for (var i = 0; i < WeaponResearchCategoryCount; i++)
+        {
+            var currentLevel = planet.Research.GetCurrentLevel(i);
+            var growth = ComputeResearchGrowth(productionPerCategory, currentLevel, rules);
+
+            if (growth > 0)
+            {
+                AdjustResearchLevel(planet, i, growth, rules);
+                progressed = true;
+            }
+        }
+
+        // Update system tech level based on total research.
+        UpdateSystemTechLevel(planet, rules);
+
+        return progressed;
+    }
+
+    /// <summary>
+    /// Computes research growth based on production investment and current level.
+    /// </summary>
+    private static int ComputeResearchGrowth(int production, int currentLevel, PlanetResearchRules rules)
+    {
+        if (production <= 0)
+        {
+            return 0;
+        }
+
+        var baseGrowth = production / rules.Progression.ProductionToResearchEfficiency;
+
+        // Growth bonus from existing research (diminishing returns).
+        var growthBonus = baseGrowth * rules.Progression.ResearchGrowthBonusPercent * currentLevel / 100000;
+
+        // Apply decay for very high research levels.
+        var decay = 0;
+        if (currentLevel > 50000)
+        {
+            decay = baseGrowth * rules.Progression.ResearchDecayPercent / 100;
+        }
+
+        var totalGrowth = baseGrowth + growthBonus - decay;
+        return Math.Max(0, totalGrowth);
+    }
+
+    /// <summary>
+    /// Updates system tech level based on total research achievement.
+    /// </summary>
+    public void UpdateSystemTechLevel(Planet planet, PlanetResearchRules rules)
+    {
+        var totalResearch = ComputeResearchSum(planet);
+        var currentTechLevel = planet.Research.SystemTechLevel;
+
+        // System tech increases every 5000 total research points.
+        var targetTechLevel = Math.Min(
+            totalResearch / rules.Progression.SystemTechGrowthThreshold,
+            rules.MaxSystemTechLevel
+        );
+
+        if (targetTechLevel > currentTechLevel)
+        {
+            SetSystemTechLevel(planet, targetTechLevel, rules);
+        }
+    }
+
+    /// <summary>
+    /// Computes research cost for a given level increase.
+    /// </summary>
+    public int ComputeResearchCost(int targetLevel, PlanetResearchRules rules)
+    {
+        if (targetLevel <= 0)
+        {
+            return 0;
+        }
+
+        // Cost is based on target level, not using rules directly.
+        return targetLevel * 100;
+    }
+
     public void CopyResearch(Planet source, Planet target)
     {
         target.Research.CopyFrom(source.Research);

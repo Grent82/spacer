@@ -1,5 +1,30 @@
 namespace Spacer.Domain.ValueObjects;
 
+public readonly record struct ProductionRules(
+    int BaseProductionPerCitizen,
+    int LoyaltyBonusPercent,
+    int PublicOpinionBonusPercent,
+    int ResearchEfficiencyBonusPercent,
+    int ProductionDecayPercent,
+    int MaxProductionDecayPercent,
+    int PopulationGrowthCostDivisor,
+    int ResearchCostBase,
+    int ResearchCostMultiplier
+)
+{
+    public static readonly ProductionRules Default = new(
+        BaseProductionPerCitizen: 10,
+        LoyaltyBonusPercent: 50,
+        PublicOpinionBonusPercent: 30,
+        ResearchEfficiencyBonusPercent: 20,
+        ProductionDecayPercent: 5,
+        MaxProductionDecayPercent: 50,
+        PopulationGrowthCostDivisor: 100,
+        ResearchCostBase: 1000,
+        ResearchCostMultiplier: 100
+    );
+}
+
 public readonly record struct PlanetEconomyRules(
     int MinPopulation,
     int MaxPopulation,
@@ -19,7 +44,8 @@ public readonly record struct PlanetEconomyRules(
     int LowLoyaltyPopulationCrashOdds,
     int LowLoyaltyPopulationCrashTrigger,
     int LowLoyaltyPopulationCrashDivisor,
-    int LowLoyaltyResetValue
+    int LowLoyaltyResetValue,
+    ProductionRules Production
 )
 {
     public static readonly PlanetEconomyRules Default = new(
@@ -41,6 +67,7 @@ public readonly record struct PlanetEconomyRules(
         LowLoyaltyPopulationCrashOdds: 5,
         LowLoyaltyPopulationCrashTrigger: 2,
         LowLoyaltyPopulationCrashDivisor: 20,
-        LowLoyaltyResetValue: 5
+        LowLoyaltyResetValue: 5,
+        Production: ProductionRules.Default
     );
 }

@@ -10,20 +10,32 @@ using Spacer.Domain.ValueObjects;
 public sealed class EconomyTurnService
 {
     private readonly PlanetEconomyService _planetEconomyService;
+    private readonly PlanetResearchService _planetResearchService;
     private readonly IRandomSource _random;
 
     public EconomyTurnService(PlanetEconomyService planetEconomyService)
-        : this(planetEconomyService, new SystemRandomSource())
+        : this(planetEconomyService, new PlanetResearchService(), new SystemRandomSource())
     {
     }
 
-    public EconomyTurnService(PlanetEconomyService planetEconomyService, IRandomSource random)
+    public EconomyTurnService(
+        PlanetEconomyService planetEconomyService,
+        PlanetResearchService planetResearchService,
+        IRandomSource random
+    )
     {
         _planetEconomyService = planetEconomyService;
+        _planetResearchService = planetResearchService;
         _random = random;
     }
 
-    public void ApplyPlanetEconomy( IReadOnlyList<Planet> planets, GameRules gameRules, PlanetEconomyRules economyRules, Func<Planet, FleetPostureSummary> postureProvider )
+    public void ApplyPlanetEconomy(
+        IReadOnlyList<Planet> planets,
+        GameRules gameRules,
+        PlanetEconomyRules economyRules,
+        PlanetResearchRules researchRules,
+        Func<Planet, FleetPostureSummary> postureProvider
+    )
     {
         if (planets.Count == 0)
         {
@@ -39,6 +51,7 @@ public sealed class EconomyTurnService
         var capitalsByFaction = ResolveCapitals(planetsByFaction);
 
         ApplyPublicOpinionDrift(capitalsByFaction.Values, economyRules);
+        ApplyProductionAndResearch(planetsByFaction, economyRules, researchRules);
         ApplySalaryIncome(planetsByFaction, capitalsByFaction, gameRules, economyRules);
         ApplyLoyaltyDriftFromPosture(planetsByFaction, capitalsByFaction, economyRules, postureProvider);
         ApplyPopulationGrowth(planetsByFaction, economyRules);
@@ -52,6 +65,31 @@ public sealed class EconomyTurnService
             if (opinionDelta != 0)
             {
                 _planetEconomyService.AdjustPublicOpinion(capital, opinionDelta, rules);
+            }
+        }
+    }
+
+    private void ApplyProductionAndResearch(
+        IReadOnlyDictionary<EntityId, List<Planet>> planetsByFaction,
+        PlanetEconomyRules economyRules,
+        PlanetResearchRules researchRules
+    )
+    {
+        foreach (var entry in planetsByFaction)
+        {
+            foreach (var planet in entry.Value)
+            {
+                // Compute and apply production.
+                var newProduction = _planetEconomyService.ComputeProduction(planet, economyRules);
+                var productionDelta = newProduction - planet.Production;
+                _planetEconomyService.AdjustProduction(planet, productionDelta, economyRules);
+
+                // Invest production into research.
+                var productionToInvest = planet.Production / 2; // Invest 50% of production into research.
+                if (productionToInvest > 0)
+                {
+                    _planetResearchService.ApplyResearchProgression(planet, productionToInvest, researchRules);
+                }
             }
         }
     }

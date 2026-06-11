@@ -208,4 +208,20 @@ public sealed class Planet
         }
         Gold = new Money(next);
     }
+
+    public void AdjustProduction(int delta, PlanetEconomyRules rules)
+    {
+        var next = Production + delta;
+        if (next < 0)
+        {
+            next = 0;
+        }
+        // Production cap based on population (1000 per citizen, max 10M).
+        var maxProduction = Math.Min(Population * 1000, 10_000_000);
+        if (next > maxProduction)
+        {
+            next = maxProduction;
+        }
+        Production = next;
+    }
 }

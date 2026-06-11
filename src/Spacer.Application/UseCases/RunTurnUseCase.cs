@@ -63,12 +63,13 @@ public sealed class RunTurnUseCase
             planet.ResetTurnFlags();
         }
 
-        // 2) Economy tick (salary income, opinion drift, loyalty impact, population growth).
+        // 2) Economy tick (production, research, salary income, opinion drift, loyalty impact, population growth).
         var allPlanets = _planets.GetAll();
         _economyTurnService.ApplyPlanetEconomy(
             allPlanets,
             rules,
             _config.PlanetEconomyRules,
+            _config.PlanetResearchRules,
             planet => planet.RulerId.IsNone
                 ? FleetPostureSummary.Empty
                 : _fleetPostureProvider.GetForRuler(planet.RulerId)
