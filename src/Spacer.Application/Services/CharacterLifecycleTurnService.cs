@@ -2,6 +2,7 @@ namespace Spacer.Application.Services;
 
 using System;
 using System.Collections.Generic;
+using Spacer.Application.Events;
 using Spacer.Application.Ports;
 using Spacer.Domain.Entities;
 using Spacer.Domain.Enums;
@@ -14,6 +15,7 @@ public sealed class CharacterLifecycleTurnService
     private readonly IRandomSource _random;
     private readonly INamePool _namePool;
     private readonly IEventQueue? _eventQueue;
+    private readonly ConceptionService _conceptionService;
 
     public CharacterLifecycleTurnService(
         ICharacterStore characters,
@@ -35,6 +37,7 @@ public sealed class CharacterLifecycleTurnService
         _random = random;
         _namePool = namePool;
         _eventQueue = eventQueue;
+        _conceptionService = new ConceptionService(random);
     }
 
     public CharacterLifecycleResult Apply(
@@ -52,6 +55,7 @@ public sealed class CharacterLifecycleTurnService
         var births = new List<Character>();
         var deaths = new List<Character>();
         var nextGeneratedId = GetNextGeneratedId(roster, rules.GeneratedIdStart);
+        var conceptionAttempts = new List<(Character Female, Character? Male)>();
 
         foreach (var character in roster)
         {
@@ -67,6 +71,25 @@ public sealed class CharacterLifecycleTurnService
                 if (ApplyBirthday(character, rules, deaths))
                 {
                     continue;
+                }
+            }
+
+            // Check for conception before pregnancy progression.
+            if (ShouldAttemptConception(character, rules.Pregnancy))
+            {
+                var malePartner = character.PregnancyPartnerId.IsNone
+                    ? null
+                    : _characters.FindById(character.PregnancyPartnerId);
+
+                var conceptionResult = _conceptionService.TryConceive(
+                    character,
+                    malePartner,
+                    rules.Pregnancy
+                );
+
+                if (conceptionResult.Success)
+                {
+                    conceptionAttempts.Add((character, malePartner));
                 }
             }
 
@@ -88,6 +111,23 @@ public sealed class CharacterLifecycleTurnService
                 {
                     EnqueueMiscarriageEvent(character, gameRules);
                 }
+            }
+        }
+
+        // Apply successful conceptions.
+        foreach (var (female, male) in conceptionAttempts)
+        {
+            var partnerId = male?.Id ?? female.PregnancyPartnerId;
+            if (partnerId.IsNone && male is not null)
+            {
+                partnerId = male.Id;
+            }
+
+            female.StartPregnancy(partnerId);
+
+            if (_eventQueue is not null)
+            {
+                EnqueueConceptionEvent(female, male, gameRules);
             }
         }
 
@@ -244,6 +284,29 @@ public sealed class CharacterLifecycleTurnService
         }
 
         return noble ? rules.Death.NobleMale : rules.Death.CommonMale;
+    }
+
+    private static bool ShouldAttemptConception(Character character, PregnancyRules rules)
+    {
+        // Must be female.
+        if (character.Sex != Sex.Female)
+        {
+            return false;
+        }
+
+        // Must not already be pregnant.
+        if (character.PregnancyMonths > 0)
+        {
+            return false;
+        }
+
+        // Must be in a valid state for conception.
+        return character.State == CharacterState.Active
+            || character.State == CharacterState.Pirate
+            || character.State == CharacterState.Wanderer
+            || character.State == CharacterState.VillageGirl
+            || character.State == CharacterState.Enslaved
+            || character.State == CharacterState.Commoner;
     }
 
     private static bool ShouldProgressPregnancy(Character character)
@@ -572,6 +635,32 @@ public sealed class CharacterLifecycleTurnService
             battle,
             diplomacy
         );
+    }
+
+    private void EnqueueConceptionEvent(Character mother, Character? father, GameRules gameRules)
+    {
+        // Enqueue conception event for notification/handling.
+        if (_eventQueue is null) return;
+
+        // Create event context with variables for the conception event.
+        var variables = new Dictionary<string, string>
+        {
+            ["motherName"] = mother.Name,
+            ["month"] = gameRules.CurrentMonth.ToString()
+        };
+
+        if (father is not null)
+        {
+            variables["fatherName"] = father.Name;
+            variables["eventName"] = "conception_with_partner";
+        }
+        else
+        {
+            variables["eventName"] = "conception";
+        }
+
+        var eventName = father is not null ? "conception_with_partner" : "conception";
+        _eventQueue.Enqueue(new EventRequest(eventName, new EventRenderContext(variables)));
     }
 
     private void EnqueuePregnancyMilestoneEvent(Character mother, GameRules gameRules)

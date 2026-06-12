@@ -31,7 +31,10 @@ public readonly record struct PregnancyRules(
     int AbortLoyaltyThreshold,
     int MiscarriageChancePercent,
     int MiscarriageAfterMonth,
-    bool EnableMilestoneEvents
+    bool EnableMilestoneEvents,
+    int ConceptionChancePercent,
+    bool ConceptionWithPartnerOnly,
+    int ConceptionInfertilityThreshold
 )
 {
     public static readonly PregnancyRules Default = new(
@@ -40,7 +43,10 @@ public readonly record struct PregnancyRules(
         AbortLoyaltyThreshold: 20,
         MiscarriageChancePercent: 5,
         MiscarriageAfterMonth: 2,
-        EnableMilestoneEvents: false
+        EnableMilestoneEvents: false,
+        ConceptionChancePercent: 15,
+        ConceptionWithPartnerOnly: true,
+        ConceptionInfertilityThreshold: 100
     );
 }
 
