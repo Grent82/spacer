@@ -1,58 +1,233 @@
+# Spacer Development TODO - Status Review
 
-Add constructors/factory methods to enforce invariants.
-Add PlanetGrudge and research/production sub‑structures.
-Add unit tests for duel resolution to lock behavior.
+## ✅ Abgeschlossene Aufgaben
 
+### Conception & Pregnancy
+- ✅ Conception rules added to `PregnancyRules` (ConceptionChancePercent, ConceptionWithPartnerOnly, ConceptionInfertilityThreshold)
+- ✅ `ConceptionResult` value object created
+- ✅ `ConceptionService` implemented with `TryConceive()` and `CalculateModifiedConceptionChance()`
+- ✅ Conception integrated into `CharacterLifecycleTurnService`
+- ✅ `StartPregnancyActionHandler` and `CheckConceptionActionHandler` for event-driven conception
+- ✅ Conception events enqueued on success
 
-Wire faction politics into the turn loop (add roster provider, run defection/succession each turn).
-Expand loyalty change rules (events + economy posture + per‑turn drift).
+### Fleet Combat
+- ✅ `FleetCombatantInputs` structure defined with all fields
+- ✅ `FleetCombatantFactory` implements attack/defense calculations
+- ✅ `FleetCombatResolver` resolves combat with all modifiers (guard, confusion, damage multipliers)
+- ✅ FleetPostureProvider implemented for loyalty drift
 
-add precise per‑label breakdown for the *label_2166 subcalls and map each to a candidate service/use‑case in your codebase.
---------
+### Faction Politics
+- ✅ `FactionPoliticsService` with loyalty drift, succession, defection logic
+- ✅ `FactionPoliticsTurnService` integrated into turn loop
+- ✅ Loyalty drift with public opinion, population, war/peace factors
+- ✅ Succession selection with age, merits, loyalty, diplomacy, rank criteria
 
-Note: All parameters/variables prefixed `ana` (e.g., `anaWeaponReleaseChanges`) come from a config file.
+### Economy & Research
+- ✅ `PlanetEconomyService` with salary, production, population, loyalty calculations
+- ✅ `PlanetResearchService` with research progression and system tech levels
+- ✅ `EconomyTurnService` orchestrates planet economy processing
+- ✅ Production decay and research efficiency bonuses implemented
 
-----------
+### Character Lifecycle
+- ✅ Pregnancy progression and birth mechanics
+- ✅ Old age death rules with noble/common, male/female profiles
+- ✅ Stat inheritance from parents to newborn
+- ✅ Unborn slot reuse for efficiency
 
-# Evidence From Files
+### Event System
+- ✅ `EventEngine` with condition/action handler pattern
+- ✅ `EventConditionEvaluator` with All/Any/Not composition
+- ✅ `EventRunner` and `EventActionExecutor` for event execution
+- ✅ `SetFlagActionHandler`, `SetVarActionHandler`, `AddVarActionHandler`
+- ✅ `VarEqualsConditionHandler`, `VarGteConditionHandler`, `VarExistsConditionHandler`
 
-* Startup/menu flow is in ``*label_1876 (new game, load, auto‑load, full screen, manual). See rai7.hsp.txt around lines ~64133.
-* Main loop is `*label_2166` (turn processing). See rai7.hsp.txt around lines ~81735.
-* rai7_turn_loop.md already summarizes `*label_2166` accurately and aligns with the code structure.
-* External libs show HSP UI + audio + CSV tooling: hspda.dll (csv/sort), hmm.dll (audio), WINMM.DLL (time), USER32.DLL (window class). See rai7_analysis.md.
-* _Hints.txt identifies key roles, labels, and variable meanings (player, trial mode, politics, assignments, pregnancy, etc.).
-* rai7_var_mapping_confirmed.md and rai7_var_name_suggestions.md provide concrete variable semantics (e.g., `var_44 name`, `var_732` loyalty, `var_72` atk, `var_73` def, `var_893` sex).
-* todo.md enumerates missing domain rules: economy, research, AI, politics, events, combat details.
+---
 
-----------
+## 🔴 Offene Aufgaben (Priorisiert)
 
-* Lock the turn loop contract. Mirror the ordering in *label_2166 and stub each phase with tests.
-* Model core entities and IDs. Use array sizes as a guide for entity counts and ID ranges.
-* Implement data loaders. Load scenario, map, ships, and items first.
-* Rebuild event system. Decide if you’ll translate HSP events or define a new DSL. This is the biggest risk.
-* Incremental system restores. Economy → Research → Politics → Combat → Events.
+### P0 - Critical Path
 
----------
+#### 1. Save/Load System
+**Issue: spacer-c2o** - Implement save/load for event flags, variables, and game state
 
-**Detailed TODO (Open/Partial)**
-* Fleet combat: finish input mapping from fleet data to `FleetCombatantInputs` (FleetCount, GuardBonus, DefenseUpgrade, IsConfused, DamageMultiplier2/3) and document the source fields and ranges.
-* Fleet combat: implement attack power builders for `get_ttlatk_kan`, `get_fatkval`, `get_fdefval` and place them in domain/application services with tests.
-* Fleet combat: add per‑fleet modifiers (equipment, commander stats, status effects) so `FleetCombatantFactory` reflects rai7.
-* Planet economy: define production growth/decay rules and hook them into `PlanetEconomyService` and `EconomyTurnService`.
-* Planet economy: define research progression, caps, and tech unlock pacing; integrate with `PlanetResearchService`.
-* Planet economy: model influence of population, public opinion, and posture on production/research, not just loyalty drift.
-* Character lifecycle: map pregnancy outcomes to events (birth, miscarriage, special cases) and align with rai7 conditions.
-* Character lifecycle: implement detailed death rules (disease, special flags, event‑driven death) and verify old‑age thresholds.
-* Character lifecycle: define rules for newborn stat inheritance and initial status from parents.
-* Faction politics: implement loyalty drift and defection/Joining triggers that match `rep_king` behavior.
-* Faction politics: implement rank/diplomacy influence on loyalty, promotions, and succession selection.
-* Items & equipment: map item categories to concrete gameplay effects (combat multipliers, events, status changes).
-* Items & equipment: implement inventory/ownership persistence and apply effects per turn/encounter.
-* Event system: implement a minimal `load_eve` interpreter subset (set_birth, upd_sts, set_horyo, txtload, set_eveflg) so scripted events can mutate game state.
-* Event system: define a consistent variable contract for conditions (`year`, `month`, `playerMerits`, `states`, etc.) and document it in code.
-* Event system: add player choice handling flow (UI hook, choice result routing, event continuation).
-* Turn loop: align RunTurn phases with `*label_2166` (AI, battles, diplomacy, events) and add order‑of‑operations tests.
-* Turn loop: implement scheduling/timing (`kikan`, day/month progression) beyond the current month‑tick.
-* AI: add fleet movement, target selection, diplomacy and war logic to match rai7 behavior.
-* Save/Load: persist additional state beyond GameClock (events state flags, queue, AI state, diplomacy state).
+**Current State:**
+- `InMemoryEventStateStore` exists but data is lost on exit
+- `JsonGameTimeStore` persists game clock only
+- No persistence for event state (flags, variables)
 
+**Required:**
+- [ ] Persist `IEventStateStore` data to JSON (flags, cooldowns, variables)
+- [ ] Add load functionality to restore event state
+- [ ] Integrate with game save/load workflow
+- [ ] Test save/load cycle for data integrity
+
+#### 2. Turn Loop Orchestration
+**Current State:**
+- Turn services exist but no unified turn orchestrator
+- Services are: `EconomyTurnService`, `FactionPoliticsTurnService`, `CharacterLifecycleTurnService`
+
+**Required:**
+- [ ] Create `TurnOrchestrator` or `GameTurnService`
+- [ ] Define turn phase order (economy → politics → lifecycle → combat → events)
+- [ ] Hook up turn processing to game loop
+- [ ] Add turn order tests
+
+#### 3. Event System - Core Actions
+**Current State:**
+- Basic flag/variable actions exist
+- No character/planet mutation actions
+
+**Required:**
+- [ ] Implement `SetBirth` action (set character birth)
+- [ ] Implement `UpdSts` action (update character status)
+- [ ] Implement `SetHoryo` action (set heir/prisoner)
+- [ ] Implement character lookup by context IDs
+
+---
+
+### P1 - High Priority
+
+#### 4. Fleet Combat - Input Mapping
+**Current State:**
+- `FleetCombatantFactory` exists but needs fleet data mapping
+
+**Required:**
+- [ ] Document source fields for `FleetCombatantInputs` from fleet data
+- [ ] Implement fleet-to-inputs mapper service
+- [ ] Map `GuardBonus`, `DefenseUpgrade`, `IsConfused` from fleet records
+- [ ] Map `DamageMultiplier2/3` from fleet special flags
+
+#### 5. Fleet Combat - Attack Power Builders
+**Current State:**
+- Basic attack calculation in `FleetCombatantFactory.ComputeTotalAttackPower`
+
+**Required:**
+- [ ] Implement `get_ttlatk_kan` (total attack power)
+- [ ] Implement `get_fatkval` (fleet attack value)
+- [ ] Implement `get_fdefval` (fleet defense value)
+- [ ] Add per-fleet modifier tests
+
+#### 6. Faction Politics - Rank/Diplomacy Influence
+**Current State:**
+- Basic succession with rank thresholds
+- No rank-based loyalty promotions
+
+**Required:**
+- [ ] Implement rank-based loyalty adjustments
+- [ ] Add diplomacy influence on succession
+- [ ] Track promotion history
+
+#### 7. Character Lifecycle - Death Events
+**Current State:**
+- Death events are stubbed (commented out)
+
+**Required:**
+- [ ] Implement `EnqueueDeathEvent` with full event data
+- [ ] Add disease death rules
+- [ ] Add special flag death conditions
+
+#### 8. Character Lifecycle - Birth Events
+**Current State:**
+- Birth events are stubbed
+
+**Required:**
+- [ ] Implement birth notification events
+- [ ] Add special birth conditions (twins, special heirs)
+
+---
+
+### P2 - Medium Priority
+
+#### 9. Event System - Player Choice Flow
+**Current State:**
+- `EventExecutionResult` supports choices
+- No UI hook or choice result routing
+
+**Required:**
+- [ ] Define UI callback interface for choices
+- [ ] Implement choice result routing to event continuation
+- [ ] Add choice persistence for save/load
+
+#### 10. Turn Loop - Scheduling/Timing
+**Current State:**
+- `GameClock` tracks year/month
+- No `kikan` (period/days) tracking
+
+**Required:**
+- [ ] Add day counter within months
+- [ ] Implement `kikan` scheduling system
+- [ ] Add turn timing events
+
+#### 11. AI - Basic Fleet Behavior
+**Current State:**
+- No AI implementation
+
+**Required:**
+- [ ] Fleet target selection (enemy planets, fleets)
+- [ ] Diplomacy-based aggression levels
+- [ ] War/peace decision logic
+
+#### 12. Items & Equipment
+**Current State:**
+- `ItemCatalog` exists but no effects
+
+**Required:**
+- [ ] Map item categories to effects
+- [ ] Implement inventory system
+- [ ] Add per-turn equipment effects
+
+---
+
+### P3 - Low Priority / Future
+
+#### 13. Planet Economy - Grudge System
+**Required:**
+- [ ] Add `PlanetGrudge` value object
+- [ ] Implement grudge accumulation rules
+- [ ] Add grudge effects on loyalty/production
+
+#### 14. Combat Resolver - Full Integration
+**Required:**
+- [ ] Integrate `CombatResolver` with turn loop
+- [ ] Add fleet vs fleet combat
+- [ ] Add character duel integration
+
+#### 15. Event System - Full load_eve Interpreter
+**Required:**
+- [ ] Translate HSP event scripts to event definitions
+- [ ] Add text loading (`txtload`) action
+- [ ] Implement event script compiler/transpiler
+
+---
+
+## 📋 Technical Debt
+
+### Build Hygiene
+- ⚠️ CS8602 warning in `FactionPoliticsService.cs:146` (nullable dereference)
+- ⚠️ CS8601 warning in `InMemoryPlanetFleetSpecStore.cs:20` (nullable assignment)
+
+### Architecture
+- [ ] Add `ConceptionService` to DI container in `InfrastructureBootstrap`
+- [ ] Register `StartPregnancyActionHandler` and `CheckConceptionActionHandler`
+- [ ] Move `ConceptionService` to Infrastructure (depends on ICharacterStore)
+
+### Testing
+- [ ] Add unit tests for `ConceptionService`
+- [ ] Add integration tests for turn loop
+- [ ] Add tests for event action handlers
+
+---
+
+## 📊 Progress Summary
+
+| Category | Complete | In Progress | Pending |
+|----------|----------|-------------|---------|
+| Core Domain Services | ✅ 80% | - | 20% |
+| Turn Processing | ⚠️ 60% | - | 40% |
+| Event System | ⚠️ 50% | - | 50% |
+| Fleet Combat | ✅ 75% | - | 25% |
+| Save/Load | ❌ 10% | - | 90% |
+| AI | ❌ 0% | - | 100% |
+| UI/Presentation | ❌ 0% | - | 100% |
+
+**Overall Progress: ~45%**
