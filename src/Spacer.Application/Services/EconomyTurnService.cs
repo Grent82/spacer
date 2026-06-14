@@ -282,6 +282,11 @@ public sealed class EconomyTurnService
         var result = new Dictionary<EntityId, Planet>();
         foreach (var entry in planetsByFaction)
         {
+            if (entry.Value.Count == 0)
+            {
+                continue;
+            }
+
             var capital = entry.Value.FirstOrDefault(planet => planet.IsCapitalCity) ?? entry.Value[0];
             result[entry.Key] = capital;
         }

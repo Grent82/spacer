@@ -29,7 +29,7 @@ public sealed class WeaponNameFormatter : IWeaponNameFormatter
     private string ResolveFactionCode(int factionId)
     {
         var info = _factionCatalog.FindById(factionId);
-        if (info is null || string.IsNullOrWhiteSpace(info.Value.Code))
+        if (info is null || !info.HasValue || string.IsNullOrWhiteSpace(info.Value.Code))
         {
             return $"F{factionId}";
         }

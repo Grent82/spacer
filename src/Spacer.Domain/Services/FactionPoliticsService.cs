@@ -1,6 +1,7 @@
 namespace Spacer.Domain.Services;
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using Spacer.Domain.Entities;
 using Spacer.Domain.Enums;
 using Spacer.Domain.ValueObjects;
@@ -143,6 +144,7 @@ public sealed class FactionPoliticsService
             return false;
         }
 
+        Debug.Assert(target is not null, "target should not be null when TrySelectJoinTarget returns true");
         var factionId = target.FactionId.IsNone ? target.Id : target.FactionId;
         candidate.SetFaction(factionId, target.Id);
         return true;

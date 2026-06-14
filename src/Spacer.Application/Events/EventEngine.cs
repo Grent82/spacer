@@ -3,6 +3,7 @@ namespace Spacer.Application.Events;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using Spacer.Application.Ports;
 
 public sealed class EventEngine
@@ -183,9 +184,12 @@ public sealed class EventRunner
                     log.Add(new EventLogEntry("Title", step.Text ?? step.TextKey ?? string.Empty));
                     break;
                 case "Bgm":
-                    log.Add(new EventLogEntry("Bgm", step.Track.ValueKind == System.Text.Json.JsonValueKind.String /* TODO audio logic */
-                        ? step.Track.GetString() ?? string.Empty
-                        : step.Track.ToString()));
+                    var trackValue = step.Track.ValueKind == JsonValueKind.Undefined
+                        ? string.Empty
+                        : step.Track.ValueKind == JsonValueKind.String
+                            ? step.Track.GetString() ?? string.Empty
+                            : step.Track.ToString();
+                    log.Add(new EventLogEntry("Bgm", trackValue));
                     break;
                 case "SetFlag":
                     if (!string.IsNullOrWhiteSpace(step.Flag) && step.Value.HasValue)
