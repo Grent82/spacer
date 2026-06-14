@@ -241,3 +241,5 @@ eve/
 .dolt/
 *.db
 .beads-credential-key
+
+.claude/ralph-loop.local.md
